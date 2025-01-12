@@ -8,6 +8,7 @@ export type ServerDataType = {
   host: String;
   port: Number;
   status: ServerStatus;
+  typeInfo: "SMS" | "EMAIL";
 };
 export type NexusDataType = {
   type: DataType;

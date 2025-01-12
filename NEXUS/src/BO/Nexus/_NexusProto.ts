@@ -37,37 +37,5 @@ export default class Nexus {
     });
   };
 
-  public sendSMS = (request: { number: string; message: string }): void => {
-    const grpcClient = new GrpcClient({
-      protoPath: "./mail.proto",
-      packageName: "mail",
-      serviceName: "SMSService",
-      methodName: "SendSMS",
-    }).loadProto();
 
-    grpcClient.invokeMethod(request, (err, response) => {
-      if (err) {
-        console.error(err);
-      } else {
-        console.log("SMS sent:", response);
-      }
-    });
-  };
-
-  public sendLogs = (request: { log: string }): void => {
-    const grpcClient = new GrpcClient({
-      protoPath: "./protos/mail.proto",
-      packageName: "mail",
-      serviceName: "LogService",
-      methodName: "SendLogs",
-    }).loadProto();
-
-    grpcClient.invokeMethod(request, (err, response) => {
-      if (err) {
-        console.error(err);
-      } else {
-        console.log("Log sent:", response);
-      }
-    });
-  };
 }
