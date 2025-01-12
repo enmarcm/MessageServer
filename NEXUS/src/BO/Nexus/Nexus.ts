@@ -79,6 +79,11 @@ export default class Nexus {
   private getMethodName = (typeInfo: string) =>
     typeInfo === "SMS" ? "SendSMS" : "SendMail";
 
+  public addQue = (item: NexusQueType): void => {
+    this.que.push(item);
+    this.eventEmitter.emit("newItem");
+  };
+
   private processQueue = (): void => {
     if (this.que.length > 0) {
       const item = this.que.shift();
