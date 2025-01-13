@@ -1,7 +1,7 @@
 export type ElementStatus = "ACTIVE" | "FULL";
 export type DataType = "SMS" | "EMAIL";
 export type ServerStatus = "ONLINE" | "OFFLINE";
-export type NexusQueType = { type: DataType; content: Object };
+export type NexusQueType = { type: DataType; content: Content };
 
 export type ServerDataType = {
   name: String;
@@ -21,3 +21,16 @@ export interface ConstructorNexusData {
   data: Array<NexusDataType>;
   servers: Array<ServerDataType>;
 }
+
+interface EmailContent {
+  to: string;
+  subject: string;
+  body: string;
+}
+
+interface SMSContent {
+  to: string;
+  body: string;
+}
+
+type Content = EmailContent | SMSContent;

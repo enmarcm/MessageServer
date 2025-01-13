@@ -2,9 +2,12 @@ import path from "path";
 import GrpcClient from "../../utils/GrpcClient";
 import {
   ConstructorNexusData,
+  Content,
+  EmailContent,
   NexusDataType,
   NexusQueType,
   ServerDataType,
+  SMSContent,
 } from "./NexusTypes";
 import { EventEmitter } from "stream";
 
@@ -57,7 +60,6 @@ export default class Nexus {
 
   // Este metodo se encarga de instanciar a todos los servidores gRPC
   private initGrpcClients = () => {
-    
     //{} Esto hay que pasarlo por una variable de entorno mejor
     const PATH_PROTO = path.join(__dirname, "./mail.proto");
 
@@ -97,13 +99,23 @@ export default class Nexus {
 
   private sendItem(item: NexusQueType): void {
     const sendMethod = item.type === "EMAIL" ? "sendMail" : "sendSMS";
-    this[sendMethod]();
+
+    const { content }: { content: Content } = item;
+
+    if (!content?.to || !content?.body) return;
+
+    (this as any)[sendMethod](content);
   }
 
   /**
    * Method to send emails.
    */
-  public sendMail = (): void => {
+  public sendMail = (content: EmailContent): void => {
+    const { to, body, subject } = content;
+    if (!to || !body || !subject) return; //TODO: Aqui hay que hacer un error
+
+    if (!this.isValidEmail(to)) return; //TODO: Aqui hay que crear un error
+
     //! Validar que el correo que se vaya a enviar sea valido, para evitar perder mas tiempo
     //! Verificar servidor libre y seleccionar
     //! Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
@@ -112,9 +124,19 @@ export default class Nexus {
   };
 
   /**
+   * Method to validate an email address.
+   * @param {string} email - The email address to validate.
+   * @returns {boolean} - Returns true if the email is valid, false otherwise.
+   */
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
    * Method to send SMS.
    */
-  public sendSMS = (): void => {
+  public sendSMS = (content: SMSContent): void => {
     //! Verificar servidor libre y seleccionar
     //! Verificar numero libre y seleccionar
     //! Llamar l metodo de enviar SMS mediante grpc
