@@ -13,11 +13,11 @@ export default class Nexus {
     this.servers = [];
   }
 
-  public sendMail = (request: {
+  public sendMail = async (request: {
     email: string;
     subject: string;
     body: string;
-  }): void => {
+  }): Promise<any> => {
     const PATH_PROTO = path.join(__dirname, "./mail.proto");
 
     const grpcClient = new GrpcClient({
@@ -28,15 +28,16 @@ export default class Nexus {
       target: "0.0.0.0:50051",
     }).loadProto();
 
-    grpcClient.invokeMethod(request, (err, response) => {
-      if (err) {
-        console.error(err);
-      } else {
-        console.log("Mail sent:", response);
-        return response
-      }
+    return new Promise((resolve, reject) => {
+      grpcClient.invokeMethod(request, (err, response) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+        } else {
+          console.log("Mail sent:", response);
+          resolve(response);
+        }
+      });
     });
   };
-
-
 }
