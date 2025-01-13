@@ -6,15 +6,16 @@ export type NexusQueType = { type: DataType; content: Content };
 export type ServerDataType = {
   name: String;
   host: String;
-  port: Number;
+  port: number;
   status: ServerStatus;
+  use: "FREE" | "BUSSY"
   typeInfo: "SMS" | "EMAIL";
 };
 export type NexusDataType = {
   type: DataType;
   content: String;
   status: ElementStatus;
-  rest: Number;
+  rest: number;
   credentials: Object;
 };
 export interface ConstructorNexusData {

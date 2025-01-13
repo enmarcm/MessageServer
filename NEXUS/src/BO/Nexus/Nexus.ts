@@ -10,6 +10,7 @@ import {
   SMSContent,
 } from "./NexusTypes";
 import { EventEmitter } from "stream";
+import { logger } from "../../data/instances";
 
 /**
  * Nexus class that handles the queue of items to be sent, data, and servers.
@@ -110,17 +111,28 @@ export default class Nexus {
   /**
    * Method to send emails.
    */
-  public sendMail = (content: EmailContent): void => {
+  public sendMail = async (content: EmailContent): Promise<void> => {
     const { to, body, subject } = content;
     if (!to || !body || !subject) return; //TODO: Aqui hay que hacer un error
 
     if (!this.isValidEmail(to)) return; //TODO: Aqui hay que crear un error
 
-    //! Validar que el correo que se vaya a enviar sea valido, para evitar perder mas tiempo
-    //! Verificar servidor libre y seleccionar
-    //! Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
-    //! Llamar al metodo de enviar correo mediante grpc
-    // ! Devolver la informacion de si se envio o no  y enviar a logs
+    try {
+      //? Verificar servidor libre y seleccionar
+      const serverToUse = await this.selectServer();
+      //? Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
+      const mailToUse = this.selectMail();
+
+      //? Llamar al metodo de enviar correo mediante grpc
+
+      //{Aqui debemos invocar
+
+      //? Devolver la informacion de si se envio o no  y enviar a logs
+      logger.log(`Sending email to ${to} with subject ${subject} and Body`);
+    } catch (error) {
+      //Devolvemos correo a la cola
+      this.addQue({ type: "EMAIL", content });
+    }
   };
 
   /**
@@ -154,18 +166,96 @@ export default class Nexus {
   /**
    * Private method to select emails.
    */
-  private selectMail = (): void => {
-    // Evaluar cuantos correos quedan y elegir el menor
-    // Evaluar tambien cantidad de errores que ha generado
+  private selectMail = (): NexusDataType => {
+    // Filtrar los elementos que tienen el estado ACTIVE y rest mayor a 0
+    const activeMails = this.data.filter(
+      (item) => item.status === "ACTIVE" && item.rest > 0
+    );
+
+    if (activeMails.length === 0) {
+      logger.error("No active mails available");
+      throw new Error("No active mails available"); //TODO: CREAR ERROR CUSTOM
+    }
+
+    // Seleccionar el elemento con el mayor valor de rest
+    const selectedMail = activeMails.reduce((prev, curr) =>
+      prev.rest > curr.rest ? prev : curr
+    );
+
+    // Encontrar el índice del elemento seleccionado en el array original
+    const selectedIndex = this.data.findIndex(
+      (item) =>
+        item.content === selectedMail.content && item.type === selectedMail.type
+    );
+
+    if (selectedIndex !== -1) this.data[selectedIndex].status = "FULL";
+
+    //TODO: Evaluar tambien cantidad de errores que ha generado
+    logger.log(`Selected mail: ${selectedMail.content}`);
+
+    return selectedMail;
+  };
+
+  private selectServer = async (
+    attempts: number = 0
+  ): Promise<ServerDataType> => {
+    const maxAttempts = 5;
+    const retryDelay = 1000; // 1 segundo
+
+    // Filtrar los servidores que tienen el estado de "free"
+    const freeServers = this.getFreeServers();
+
+    if (freeServers.length > 0) {
+      const selectedServer = this.markServerAsBusy(freeServers[0]);
+      return selectedServer;
+    }
+
+    if (attempts < maxAttempts) {
+      logger.log(
+        `Attempt ${
+          attempts + 1
+        } failed. No free servers available. Retrying in ${
+          retryDelay / 1000
+        } second(s)...`
+      );
+      await this.delay(retryDelay);
+      return this.selectServer(attempts + 1);
+    }
+
+    throw new Error("No free servers available after 5 attempts"); //TODO: CREAR ERROR CUSTOM
   };
 
   /**
-   * Private method to select servers.
+   * Helper method to get free servers.
+   * @returns {ServerDataType[]} - Array of free servers.
    */
-  private selectServer = (): void => {
-    // LLamar al servidor y preguntarle si actualmente esta en una solicitud
-    // Verificar el que tenga mas ancho de banda
-  };
+  private getFreeServers(): ServerDataType[] {
+    return this.servers.filter((server) => server.use === "FREE");
+  }
+
+  /**
+   * Helper method to mark a server as busy.
+   * @param {ServerDataType} server - The server to mark as busy.
+   * @returns {ServerDataType} - The server marked as busy.
+   */
+  private markServerAsBusy(server: ServerDataType): ServerDataType {
+    const serverIndex = this.servers.findIndex((s) => s === server);
+
+    if (serverIndex !== -1) {
+      this.servers[serverIndex].use = "BUSSY";
+    }
+
+    return server;
+  }
+
+  /**
+   * Helper method to delay execution.
+   * @param {number} ms - The number of milliseconds to delay.
+   * @returns {Promise<void>} - A promise that resolves after the specified delay.
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 
   /**
    * Private method to select numbers.

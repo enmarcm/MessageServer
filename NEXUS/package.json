@@ -24,7 +24,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.12.5",
     "@grpc/proto-loader": "^0.7.13",
-    "@typegoose/typegoose": "^12.5.0",
+    "@typegoose/typegoose": "^12.10.1",
     "@types/bcrypt": "^5.0.2",
     "@types/crypto-js": "4.2.2",
     "@types/nodemailer": "6.4.15",
@@ -36,7 +36,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "jsonwebtoken": "9.0.2",
-    "mongoose": "^8.4.0",
+    "mongoose": "^8.9.4",
     "pg": "^8.13.0",
     "pg-pool": "^3.7.0"
   }

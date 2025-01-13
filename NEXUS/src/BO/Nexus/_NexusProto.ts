@@ -1,6 +1,8 @@
 import path from "path";
 import GrpcClient from "../../utils/GrpcClient";
 import { NexusDataType, NexusQueType, ServerDataType } from "./NexusTypes";
+import { logger } from "../../data/instances";
+import { SendMailValues } from "./methodsData";
 
 export default class Nexus {
   public que: NexusQueType[];
@@ -19,22 +21,19 @@ export default class Nexus {
     body: string;
   }): Promise<any> => {
     const PATH_PROTO = path.join(__dirname, "./mail.proto");
+    const TARGET = "0.0.0.0:50051";
 
-    const grpcClient = new GrpcClient({
-      protoPath: PATH_PROTO,
-      packageName: "mail",
-      serviceName: "MailService",
-      methodName: "SendMail",
-      target: "0.0.0.0:50051",
-    }).loadProto();
+    const grpcClient = new GrpcClient(
+      SendMailValues({ protoPath: PATH_PROTO, target: TARGET })
+    ).loadProto();
 
     return new Promise((resolve, reject) => {
       grpcClient.invokeMethod(request, (err, response) => {
         if (err) {
-          console.error(err);
+          logger.error(err);
           reject(err);
         } else {
-          console.log("Mail sent:", response);
+          logger.log(`Mail sent:, ${JSON.stringify(response)}`);
           resolve(response);
         }
       });
