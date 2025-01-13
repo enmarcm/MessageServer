@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package mail;
+
+service MailService {
+  rpc SendMail (MailRequest) returns (MailResponse) {}
+}
+
+service SMSService {
+  rpc SendSMS (SMSRequest) returns (SMSResponse) {}
+}
+
+service LogService {
+  rpc SendLogs (LogRequest) returns (LogResponse) {}
+}
+
+message MailRequest {
+  string email = 1;
+  string subject = 2;
+  string body = 3;
+}
+
+message MailResponse {
+  string status = 1;
+}
+
+message SMSRequest {
+  string number = 1;
+  string message = 2;
+}
+
+message SMSResponse {
+  string status = 1;
+}
+
+message LogRequest {
+  string log = 1;
+}
+
+message LogResponse {
+  string status = 1;
+}
