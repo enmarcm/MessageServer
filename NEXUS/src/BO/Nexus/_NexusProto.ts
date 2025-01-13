@@ -25,7 +25,7 @@ export default class Nexus {
       packageName: "mail",
       serviceName: "MailService",
       methodName: "SendMail",
-      target: "0.0.0.0:50052",
+      target: "0.0.0.0:50051",
     }).loadProto();
 
     grpcClient.invokeMethod(request, (err, response) => {
@@ -33,6 +33,7 @@ export default class Nexus {
         console.error(err);
       } else {
         console.log("Mail sent:", response);
+        return response
       }
     });
   };

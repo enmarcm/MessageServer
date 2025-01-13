@@ -57,6 +57,8 @@ export default class Nexus {
 
   // Este metodo se encarga de instanciar a todos los servidores gRPC
   private initGrpcClients = () => {
+    
+    //{} Esto hay que pasarlo por una variable de entorno mejor
     const PATH_PROTO = path.join(__dirname, "./mail.proto");
 
     const GRPC_CLIENTS = this.servers.map((server: any) => {
@@ -102,10 +104,11 @@ export default class Nexus {
    * Method to send emails.
    */
   public sendMail = (): void => {
+    //! Validar que el correo que se vaya a enviar sea valido, para evitar perder mas tiempo
     //! Verificar servidor libre y seleccionar
-    //! Verificar correo libre y seleccionar
+    //! Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
     //! Llamar al metodo de enviar correo mediante grpc
-    // ! Devolver la informacion de si se envio o no
+    // ! Devolver la informacion de si se envio o no  y enviar a logs
   };
 
   /**
