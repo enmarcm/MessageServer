@@ -15,3 +15,19 @@ export const SendMailValues = ({
 
   return objectValue;
 };
+
+export const GetServerStatsValues = ({
+  protoPath,
+  target,
+}: {
+  protoPath: string;
+  target: string;
+}) => {
+  const objectValue = {
+    ...PACKAGE_DATA.getServerStats,
+    protoPath,
+    target,
+  };
+
+  return objectValue;
+};
