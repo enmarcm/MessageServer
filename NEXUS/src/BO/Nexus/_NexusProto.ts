@@ -39,4 +39,29 @@ export default class Nexus {
       });
     });
   };
+
+  public getServerStats = async (): Promise<any> => {
+    const PATH_PROTO = path.join(__dirname, "./data.proto");
+    const TARGET = "0.0.0.0:50052";
+
+    const grpcClient = new GrpcClient({
+      protoPath: PATH_PROTO,
+      target: TARGET,
+      packageName: "data",
+      serviceName: "DataService",
+      methodName: "GetServerStats"
+    }).loadProto();
+
+    return new Promise((resolve, reject) => {
+      grpcClient.invokeMethod({}, (err, response) => {
+        if (err) {
+          logger.error(err);
+          reject(err);
+        } else {
+          logger.log(`Server stats received: ${JSON.stringify(response)}`);
+          resolve(response);
+        }
+      });
+    });
+  };
 }
