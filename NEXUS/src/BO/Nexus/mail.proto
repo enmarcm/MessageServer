@@ -15,7 +15,7 @@ service LogService {
 }
 
 message MailRequest {
-  string email = 1;
+  string to = 1;
   string subject = 2;
   string body = 3;
 }
