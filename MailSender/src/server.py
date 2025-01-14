@@ -6,7 +6,10 @@ from services.DataService import DataService
 
 def serve():
     server = GrpcServer()
-    server.add_service(mail_pb2_grpc.add_MailServiceServicer_to_server, MailService())
+    server.add_service(mail_pb2_grpc.add_MailServiceServicer_to_server, MailService(
+        client_secret_file='./client_secret.json',
+        credentials_file='path/to/credentials.json'
+    ))
     server.add_service(data_pb2_grpc.add_DataServiceServicer_to_server, DataService())
     grpc_server = server.start()
     grpc_server.start()

@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import mail_pb2 as mail__pb2
+from src.protos import mail_pb2 as src_dot_protos_dot_mail__pb2
 
 GRPC_GENERATED_VERSION = '1.69.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in mail_pb2_grpc.py depends on'
+        + f' but the generated code in src/protos/mail_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,8 +36,8 @@ class MailServiceStub(object):
         """
         self.SendMail = channel.unary_unary(
                 '/mail.MailService/SendMail',
-                request_serializer=mail__pb2.MailRequest.SerializeToString,
-                response_deserializer=mail__pb2.MailResponse.FromString,
+                request_serializer=src_dot_protos_dot_mail__pb2.MailRequest.SerializeToString,
+                response_deserializer=src_dot_protos_dot_mail__pb2.MailResponse.FromString,
                 _registered_method=True)
 
 
@@ -55,8 +55,8 @@ def add_MailServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendMail': grpc.unary_unary_rpc_method_handler(
                     servicer.SendMail,
-                    request_deserializer=mail__pb2.MailRequest.FromString,
-                    response_serializer=mail__pb2.MailResponse.SerializeToString,
+                    request_deserializer=src_dot_protos_dot_mail__pb2.MailRequest.FromString,
+                    response_serializer=src_dot_protos_dot_mail__pb2.MailResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -84,8 +84,8 @@ class MailService(object):
             request,
             target,
             '/mail.MailService/SendMail',
-            mail__pb2.MailRequest.SerializeToString,
-            mail__pb2.MailResponse.FromString,
+            src_dot_protos_dot_mail__pb2.MailRequest.SerializeToString,
+            src_dot_protos_dot_mail__pb2.MailResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -108,8 +108,8 @@ class SMSServiceStub(object):
         """
         self.SendSMS = channel.unary_unary(
                 '/mail.SMSService/SendSMS',
-                request_serializer=mail__pb2.SMSRequest.SerializeToString,
-                response_deserializer=mail__pb2.SMSResponse.FromString,
+                request_serializer=src_dot_protos_dot_mail__pb2.SMSRequest.SerializeToString,
+                response_deserializer=src_dot_protos_dot_mail__pb2.SMSResponse.FromString,
                 _registered_method=True)
 
 
@@ -127,8 +127,8 @@ def add_SMSServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendSMS': grpc.unary_unary_rpc_method_handler(
                     servicer.SendSMS,
-                    request_deserializer=mail__pb2.SMSRequest.FromString,
-                    response_serializer=mail__pb2.SMSResponse.SerializeToString,
+                    request_deserializer=src_dot_protos_dot_mail__pb2.SMSRequest.FromString,
+                    response_serializer=src_dot_protos_dot_mail__pb2.SMSResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -156,8 +156,8 @@ class SMSService(object):
             request,
             target,
             '/mail.SMSService/SendSMS',
-            mail__pb2.SMSRequest.SerializeToString,
-            mail__pb2.SMSResponse.FromString,
+            src_dot_protos_dot_mail__pb2.SMSRequest.SerializeToString,
+            src_dot_protos_dot_mail__pb2.SMSResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -180,8 +180,8 @@ class LogServiceStub(object):
         """
         self.SendLogs = channel.unary_unary(
                 '/mail.LogService/SendLogs',
-                request_serializer=mail__pb2.LogRequest.SerializeToString,
-                response_deserializer=mail__pb2.LogResponse.FromString,
+                request_serializer=src_dot_protos_dot_mail__pb2.LogRequest.SerializeToString,
+                response_deserializer=src_dot_protos_dot_mail__pb2.LogResponse.FromString,
                 _registered_method=True)
 
 
@@ -199,8 +199,8 @@ def add_LogServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendLogs': grpc.unary_unary_rpc_method_handler(
                     servicer.SendLogs,
-                    request_deserializer=mail__pb2.LogRequest.FromString,
-                    response_serializer=mail__pb2.LogResponse.SerializeToString,
+                    request_deserializer=src_dot_protos_dot_mail__pb2.LogRequest.FromString,
+                    response_serializer=src_dot_protos_dot_mail__pb2.LogResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -228,8 +228,8 @@ class LogService(object):
             request,
             target,
             '/mail.LogService/SendLogs',
-            mail__pb2.LogRequest.SerializeToString,
-            mail__pb2.LogResponse.FromString,
+            src_dot_protos_dot_mail__pb2.LogRequest.SerializeToString,
+            src_dot_protos_dot_mail__pb2.LogResponse.FromString,
             options,
             channel_credentials,
             insecure,
