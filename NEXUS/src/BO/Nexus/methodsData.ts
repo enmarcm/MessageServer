@@ -1,3 +1,5 @@
+import PACKAGE_DATA from "../../data/jsons/package-data.json";
+
 export const SendMailValues = ({
   protoPath,
   target,
@@ -6,10 +8,8 @@ export const SendMailValues = ({
   target: string;
 }) => {
   const objectValue = {
+    ...PACKAGE_DATA.sendMail,
     protoPath,
-    packageName: "mail",
-    serviceName: "MailService",
-    methodName: "SendMail",
     target,
   };
 

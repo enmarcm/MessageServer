@@ -241,10 +241,8 @@ export default class Nexus {
   private markServerAsBusy(server: ServerDataType): ServerDataType {
     const serverIndex = this.servers.findIndex((s) => s === server);
 
-    if (serverIndex !== -1) {
-      this.servers[serverIndex].use = "BUSSY";
-    }
-
+    if (serverIndex !== -1) this.servers[serverIndex].use = "BUSSY";
+    
     return server;
   }
 

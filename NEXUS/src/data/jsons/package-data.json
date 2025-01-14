@@ -1,0 +1,7 @@
+{
+    "sendMail":{
+        "packageName": "mail",
+        "serviceName": "MailService",
+        "methodName": "SendMail"
+    }
+}

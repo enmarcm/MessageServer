@@ -94,6 +94,16 @@ class GrpcClient {
       this.packageDefinition = packageDefinition;
       this.grpcObject = loadPackageDefinition(packageDefinition);
 
+      // Ensure the package exists in the loaded object
+      if (!this.grpcObject[this.packageName]) {
+        throw new Error(`Package ${this.packageName} not found in proto file`);
+      }
+
+      // Ensure the service exists in the package
+      if (!this.grpcObject[this.packageName][this.serviceName]) {
+        throw new Error(`Service ${this.serviceName} not found in package ${this.packageName}`);
+      }
+
       // Directly create the client for the specified service
       const service = this.grpcObject[this.packageName][this.serviceName] as ServiceClientConstructor;
       this.client = new service(this.target, credentials.createInsecure());
