@@ -54,6 +54,7 @@ def create_grpc_server(client_secrets):
     server.add_service(mail_pb2_grpc.add_MailServiceServicer_to_server, MailService(client_secrets))
     server.add_service(data_pb2_grpc.add_DataServiceServicer_to_server, DataService())
     return server
+
 def serve():
     """
     Inicia el servidor gRPC.
@@ -71,7 +72,6 @@ def serve():
         grpc_server.wait_for_termination()
     else:
         print("No se pudo cargar el archivo de credenciales. El servidor no se iniciará.")
-
 
 if __name__ == '__main__':
     serve()
