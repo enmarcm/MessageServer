@@ -178,7 +178,7 @@ export default class Nexus {
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
-          ?.bo.invokeMethod(request, (err, response) => {
+          ?.bo.invokeMethod(contentMapped, (err, response) => {
             if (err) {
               logger.error(err);
               reject(err);
