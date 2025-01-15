@@ -177,10 +177,14 @@ export default class Nexus {
 
       //TODO: Mejorar esto
       return new Promise((resolve, reject) => {
-        console.log(content)
+        const contentMapped = {
+          ...content,
+          from: mailToUse.content,
+        };
+
         this.grpcClientsMap
           .get(serverToUse)
-          ?.bo.invokeMethod(content, (err, response) => {
+          ?.bo.invokeMethod(contentMapped, (err, response) => {
             if (err) {
               logger.error(err);
               reject(err);
