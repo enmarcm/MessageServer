@@ -172,7 +172,7 @@ export default class Nexus {
       // Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
       mailToUse = this.selectMail();
       // Crear el objeto request con los datos necesarios
-      const request = { from: mailToUse.content, to, subject, body };
+      const contentMapped = { from: mailToUse.content, to, subject, body };
 
       // Llamar al metodo de enviar correo mediante grpc
       await new Promise<void>((resolve, reject) => {
