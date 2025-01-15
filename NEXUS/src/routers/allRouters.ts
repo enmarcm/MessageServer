@@ -1,21 +1,41 @@
 import { Router } from "express";
 import { ReqRes } from "../types";
 import { iNexus, logger } from "../data/instances";
+import CryptManager from "../utils/CryptManager";
 
 export const MainRouter = Router();
 
 MainRouter.get("/", async (data: ReqRes) => {
-   await iNexus.sendMail({
-    to: "hermandad@yahoo.com",
-    subject: "Prueba",
-    body: "Este es un contenido del correo, nos avisa que tal",
-  });
+  const emailAddresses = [
+    // "miguel.29877776@uru.edu",
+    // "miguelguillendg@gmail.com",
+    "enmanuel.29955728@uru.edu",
+    "Bypaolasayago@gmail.com"
+  ];
 
+  const getRandomLore = async () =>
+    await CryptManager.encryptBcrypt({ data: "aqui algo hay" });
+
+  const sendEmails = async () => {
+    for (const email of emailAddresses) {
+      for (let i = 1; i <= 5; i++) {
+        await iNexus.sendMail({
+          to: email,
+          subject: `Subject ${i} for ${email}`,
+          body: `Body ${i} for ${email}: ${await getRandomLore()}, nos avisa que tal`,
+        });
+      }
+    }
+  };
+
+  sendEmails().catch((error) => {
+    console.error("Error sending emails:", error);
+  });
 
   data.res.send(`<h1>Creo que si se envio</h1>`);
 });
 
-MainRouter.get("/showLogs", async(data: ReqRes)=>{
+MainRouter.get("/showLogs", async (data: ReqRes) => {
   const logs = await logger.getAllLogs();
-  data.res.json(logs)
-})
+  data.res.json(logs);
+});

@@ -1,19 +1,21 @@
 from protos import mail_pb2_grpc
 from protos import mail_pb2
-from utils.GmailWrapper import GmailWrapper
+from BO.MailSender._MailSender import MailSender
 
 class MailService(mail_pb2_grpc.MailServiceServicer):
-    def __init__(self, client_secret_file, credentials_file):
-        self.gmail_wrapper = GmailWrapper(client_secret_file, credentials_file)
+    def __init__(self, client_secrets):
+        self.MailSender = MailSender(client_secrets)
 
     def SendMail(self, request, context):
-        response = self.gmail_wrapper.send_email(
-            from_email=request.from_email,
-            to=request.to_email,
-            subject=request.subject,
-            message_text=request.body
+        from_value = getattr(request, 'from')  
+        response = self.MailSender.send_message(
+            from_email=from_value,
+            destination=request.to,
+            obj=request.subject,
+            body=request.body
         )
+        
         if response:
-            return mail_pb2.MailResponse(status=f"Mail sent successfully to {request.to_email}")
+            return mail_pb2.MailResponse(status=f"Mail sent successfully to {request.to}")
         else:
             return mail_pb2.MailResponse(status="Failed to send mail")

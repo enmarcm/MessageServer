@@ -163,25 +163,19 @@ export default class Nexus {
 
     if (!this.isValidEmail(to)) return; //TODO: Aqui hay que crear un error
 
+    let serverToUse: ServerDataType | null = null;
+    let mailToUse: NexusDataType | null = null;
+
     try {
-      //? Verificar servidor libre y seleccionar
-      //@ts-ignore
-      const serverToUse = await this.selectServer();
-      //? Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
-      //@ts-ignore
-      const mailToUse = this.selectMail();
+      // Verificar servidor libre y seleccionar
+      serverToUse = await this.selectServer();
+      // Verificar correo libre y seleccionar - Si no hay, se deja en la cola de nuevo
+      mailToUse = this.selectMail();
+      // Crear el objeto request con los datos necesarios
+      const contentMapped = { from: mailToUse.content, to, subject, body };
 
-      //? Llamar al metodo de enviar correo mediante grpc
-
-      //{Aqui debemos invocar
-
-      //TODO: Mejorar esto
-      return new Promise((resolve, reject) => {
-        const contentMapped = {
-          ...content,
-          from: mailToUse.content,
-        };
-
+      // Llamar al metodo de enviar correo mediante grpc
+      await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
           ?.bo.invokeMethod(contentMapped, (err, response) => {
@@ -189,19 +183,51 @@ export default class Nexus {
               logger.error(err);
               reject(err);
             } else {
-              logger.log(`Mail sent:, ${JSON.stringify(response)}`);
-
-              //? Devolver la informacion de si se envio o no  y enviar a logs
-
-              resolve(response);
+              logger.log(`Mail sent: ${JSON.stringify(response)}`);
+              resolve();
             }
           });
       });
+
+      // Devolver la informacion de si se envio o no y enviar a logs
+      logger.log(`Sending email to ${to} with subject ${subject} and Body`);
     } catch (error) {
-      //Devolvemos correo a la cola
+      // Devolvemos correo a la cola
       this.addQue({ type: "EMAIL", content });
+    } finally {
+      // Marcar el servidor como "FREE" después de enviar el correo o si ocurre un error
+      if (serverToUse) {
+        this.markServerAsFree(serverToUse);
+      }
+      // Marcar el correo como "ACTIVE" después de enviar el correo o si ocurre un error
+      if (mailToUse) {
+        this.markMailAsActive(mailToUse);
+      }
+
+      console.log(this.servers);
+      console.log(this.data);
     }
   };
+
+  /**
+   * Helper method to mark a server as free.
+   * @param {ServerDataType} server - The server to mark as free.
+   * @returns {ServerDataType} - The server marked as free.
+   */
+  private markServerAsFree(server: ServerDataType): ServerDataType {
+    const serverIndex = this.servers.findIndex((s) => s === server);
+
+    if (serverIndex !== -1) this.servers[serverIndex].use = "FREE";
+
+    return server;
+  }
+
+  //TODO: JSDOC
+  private markMailAsActive(mailToUse: NexusDataType): void {
+    const mailIndex = this.data.findIndex((m) => m === mailToUse);
+
+    if (mailIndex !== -1) this.data[mailIndex].status = "ACTIVE";
+  }
 
   /**
    * Method to validate an email address.

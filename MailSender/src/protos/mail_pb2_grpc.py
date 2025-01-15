@@ -3,7 +3,8 @@
 import grpc
 import warnings
 
-from src.protos import mail_pb2 as src_dot_protos_dot_mail__pb2
+from protos import mail_pb2 as src_dot_protos_dot_mail__pb2
+from protos import mail_pb2 as src_dot_protos_dot_mail__pb2
 
 GRPC_GENERATED_VERSION = '1.69.0'
 GRPC_VERSION = grpc.__version__
