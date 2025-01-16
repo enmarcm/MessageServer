@@ -1,6 +1,6 @@
 from protos import mail_pb2_grpc
 from protos import mail_pb2
-from MailSender.src.BO.Gmail.GmailWrapper import GmailWrapper
+from MailSender.src.BO.Gmail.__MultipleCloudTest import GmailWrapper
 
 class MailService(mail_pb2_grpc.MailServiceServicer):
     def __init__(self, client_secret_file, accounts):
