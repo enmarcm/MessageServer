@@ -39,7 +39,7 @@ export default class DistributedRPCHandler {
       const TARGET = `${server.host}:${server.port}`;
 
       const boClient = new GrpcClient({
-        protoPath: PATH_PROTO_MAIL,
+        protoPath: server.typeInfo === "EMAIL" ?  PATH_PROTO_MAIL : "",
         packageName: this.getPackageName(server.typeInfo),
         serviceName: this.getServiceName(server.typeInfo),
         methodName: this.getMethodName(server.typeInfo),
