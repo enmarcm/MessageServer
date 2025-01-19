@@ -9,10 +9,8 @@ MainRouter.get("/", async (data: ReqRes) => {
   const emailAddresses = [
     // "miguel.29877776@uru.edu",
     // "miguelguillendg@gmail.com",
-    // "alejandromerchanserrano@gmail.com",
-    // "enmanuel.29955728@uru.edu",
-    "enmanuelcolina547@gmail.com"
-    // "Bypaolasayago@gmail.com"
+    "enmanuel.29955728@uru.edu",
+    "Bypaolasayago@gmail.com"
   ];
 
   const getRandomLore = async () =>
@@ -21,15 +19,11 @@ MainRouter.get("/", async (data: ReqRes) => {
   const sendEmails = async () => {
     for (const email of emailAddresses) {
       for (let i = 1; i <= 5; i++) {
-        iNexus.addQue({
-          type: "EMAIL",
-          content: {
-            to: email,
-            subject: `INTENTAMOS ${i} for ${email}`,
-            body: `Body ${i} for ${email}: ${await getRandomLore()}, nos avisa que tal`,
-          },
+        await iNexus.sendMail({
+          to: email,
+          subject: `Subject ${i} for ${email}`,
+          body: `Body ${i} for ${email}: ${await getRandomLore()}, nos avisa que tal`,
         });
-
       }
     }
   };
