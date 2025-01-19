@@ -1,0 +1,12 @@
+{
+    "sendMail": {
+        "packageName": "mail",
+        "serviceName": "MailService",
+        "methodName": "SendMail"
+    },
+    "getServerStats": {
+        "packageName": "data",
+        "serviceName": "DataService",
+        "methodName": "GetServerStats"
+    }
+}

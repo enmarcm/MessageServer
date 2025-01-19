@@ -1,6 +1,4 @@
-export enum Routes {
-
-}
+export enum Routes {}
 
 export enum Constants {
   ERROR = "error",
@@ -12,4 +10,9 @@ export enum HttpMethod {
   PUT = "PUT",
   PATCH = "PATCH",
   DELETE = "DELETE",
+}
+
+export enum ElementSend {
+  EMAIL = "EMAIL",
+  SMS = "SMS",
 }
