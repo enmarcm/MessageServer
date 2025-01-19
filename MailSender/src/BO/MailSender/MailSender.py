@@ -15,7 +15,7 @@ class MailSender:
         """
         self.gmail_wrapper = GmailWrapper(client_secrets)
 
-    def build_message(self, from_email, destination, obj, body, attachments=[]):
+    def build_message(self, from_email, destination, obj, body, is_html=False, attachments=[]):
         """
         Construye un mensaje de correo electrónico.
 
@@ -24,13 +24,14 @@ class MailSender:
             destination (str): El correo electrónico del destinatario.
             obj (str): El asunto del correo electrónico.
             body (str): El cuerpo del correo electrónico.
+            is_html (bool): Indica si el cuerpo del correo electrónico es HTML.
             attachments (list): Lista de archivos adjuntos.
 
         Returns:
             dict: Mensaje de correo electrónico codificado en base64.
         """
         if not attachments:  # no attachments given
-            message = MIMEText(body)
+            message = MIMEText(body, 'html' if is_html else 'plain')
             message['to'] = destination
             message['from'] = from_email
             message['subject'] = obj
@@ -39,12 +40,12 @@ class MailSender:
             message['to'] = destination
             message['from'] = from_email
             message['subject'] = obj
-            message.attach(MIMEText(body))
+            message.attach(MIMEText(body, 'html' if is_html else 'plain'))
             for filename in attachments:
                 add_attachment(message, filename)
         return {'raw': urlsafe_b64encode(message.as_bytes()).decode()}
 
-    def send_message(self, from_email, destination, obj, body, attachments=[]):
+    def send_message(self, from_email, destination, obj, body, is_html=True, attachments=[]):
         """
         Envía un mensaje de correo electrónico utilizando GmailWrapper.
 
@@ -53,10 +54,11 @@ class MailSender:
             destination (str): El correo electrónico del destinatario.
             obj (str): El asunto del correo electrónico.
             body (str): El cuerpo del correo electrónico.
+            is_html (bool): Indica si el cuerpo del correo electrónico es HTML.
             attachments (list): Lista de archivos adjuntos.
 
         Returns:
             dict: Respuesta de la API de Gmail.
         """
-        message = self.build_message(from_email, destination, obj, body, attachments)
-        return self.gmail_wrapper.send_email(from_email, destination, obj, body)
+        message = self.build_message(from_email, destination, obj, body, is_html, attachments)
+        return self.gmail_wrapper.send_email(from_email, destination, obj, body, is_html)

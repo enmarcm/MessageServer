@@ -30,7 +30,7 @@ class GmailWrapper:
         """
         return {account: authenticate_account(account, client_secret_file) for account, client_secret_file in client_secrets.items()}
 
-    def send_email(self, from_email, to, subject, message_text):
+    def send_email(self, from_email, to, subject, message_text, is_html=False):
         """
         Envía un correo electrónico desde una cuenta autenticada.
 
@@ -39,6 +39,7 @@ class GmailWrapper:
             to (str): El correo electrónico del destinatario.
             subject (str): El asunto del correo electrónico.
             message_text (str): El cuerpo del correo electrónico.
+            is_html (bool): Indica si el cuerpo del correo electrónico es HTML.
 
         Returns:
             dict: Respuesta de la API de Gmail.
@@ -48,7 +49,7 @@ class GmailWrapper:
             return None
 
         service = self.services[from_email]
-        message = MIMEText(message_text)
+        message = MIMEText(message_text, 'html' if is_html else 'plain')
         message['to'] = to
         message['from'] = from_email
         message['subject'] = subject
