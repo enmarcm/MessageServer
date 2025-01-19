@@ -1,35 +1,48 @@
 import base64
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
-from oauth2client.file import Storage
-from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.tools import run_flow
+from .Auth.GmailAuth import authenticate_account  # Importar la función de autenticación
+
+SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
 class GmailWrapper:
-    def __init__(self, client_secret_file, credentials_file):
-        self.client_secret_file = client_secret_file
-        self.credentials_file = credentials_file
-        self.services = self.authenticate_all_gmails()
+    """Wrapper para la API de Gmail que maneja la autenticación y el envío de correos electrónicos."""
 
-    def authenticate_all_gmails(self):
-        # Set up the OAuth 2.0 flow
-        flow = OAuth2WebServerFlow(
-            client_id='YOUR_CLIENT_ID',
-            client_secret='YOUR_CLIENT_SECRET',
-            scope='https://www.googleapis.com/auth/gmail.send',
-            redirect_uri='urn:ietf:wg:oauth:2.0:oob'
-        )
+    def __init__(self, client_secrets):
+        """
+        Inicializa el GmailWrapper con un diccionario de archivos de secretos del cliente y una lista de cuentas.
 
-        storage = Storage(self.credentials_file)
-        credentials = storage.get()
+        Args:
+            client_secrets (dict): Diccionario donde las claves son correos electrónicos y los valores son rutas a archivos client_secret.json.
+        """
+        self.client_secrets = client_secrets
+        self.services = self.authenticate_all_accounts(client_secrets)
 
-        if not credentials or credentials.invalid:
-            credentials = run_flow(flow, storage)
+    def authenticate_all_accounts(self, client_secrets):
+        """
+        Autentica todas las cuentas proporcionadas.
 
-        service = build('gmail', 'v1', credentials=credentials)
-        return service
+        Args:
+            client_secrets (dict): Diccionario donde las claves son correos electrónicos y los valores son rutas a archivos client_secret.json.
+
+        Returns:
+            dict: Diccionario de servicios de la API de Gmail autenticados.
+        """
+        return {account: authenticate_account(account, client_secret_file) for account, client_secret_file in client_secrets.items()}
 
     def send_email(self, from_email, to, subject, message_text):
+        """
+        Envía un correo electrónico desde una cuenta autenticada.
+
+        Args:
+            from_email (str): El correo electrónico del remitente.
+            to (str): El correo electrónico del destinatario.
+            subject (str): El asunto del correo electrónico.
+            message_text (str): El cuerpo del correo electrónico.
+
+        Returns:
+            dict: Respuesta de la API de Gmail.
+        """
         if from_email not in self.services:
             print(f'No credentials found for {from_email}')
             return None

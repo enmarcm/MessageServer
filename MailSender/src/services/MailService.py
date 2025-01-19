@@ -1,6 +1,6 @@
 from protos import mail_pb2_grpc
 from protos import mail_pb2
-from BO.MailSender._MailSender import MailSender
+from BO.MailSender.MailSender import MailSender
 
 class MailService(mail_pb2_grpc.MailServiceServicer):
     def __init__(self, client_secrets):
