@@ -1,0 +1,16 @@
+{
+  "A11": {
+    "description": "Este error se debe a que ...",
+    "messageSend": {
+      "ES": "mensaje en español",
+      "EN": "message in English"
+    }
+  },
+  "B22": {
+    "description": "Otro tipo de error ...",
+    "messageSend": {
+      "ES": "otro mensaje en español",
+      "EN": "another message in English"
+    }
+  }
+}

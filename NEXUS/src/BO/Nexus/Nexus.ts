@@ -60,12 +60,16 @@ export default class Nexus {
    * @private
    */
   private processQueue = async (): Promise<void> => {
+   try {
     if (this.que.length > 0) {
       const item = this.que.shift();
       if (item) {
         await this.sendItem(item);
       }
     }
+   } catch (error) {
+    
+   }
   };
 
   /**
