@@ -2,6 +2,27 @@ import https, { RequestOptions } from "https";
 import { HttpMethod } from "../enums";
 import { FetchoParams } from "../types";
 
+/**
+ * Makes an HTTP request using the specified parameters.
+ * 
+ * @param {FetchoParams} params - The parameters for the HTTP request.
+ * @param {string} params.url - The URL to which the request is sent.
+ * @param {HttpMethod} [params.method=HttpMethod.GET] - The HTTP method to use for the request.
+ * @param {Record<string, any>} [params.body] - The body of the request, for POST, PUT, and PATCH methods.
+ * @param {string} [params.token] - The authorization token to include in the request headers.
+ * @param {Record<string, string>} [params.headers={}] - Additional headers to include in the request.
+ * @returns {Promise<Record<string, any> | false>} - A promise that resolves to the response data or false if an error occurs.
+ * 
+ * @example
+ * const response = await fetcho({
+ *   url: 'https://api.example.com/data',
+ *   method: HttpMethod.POST,
+ *   body: { key: 'value' },
+ *   token: 'your-auth-token',
+ *   headers: { 'Custom-Header': 'value' }
+ * });
+ * console.log(response);
+ */
 const fetcho = ({
   url,
   method = HttpMethod.GET,
