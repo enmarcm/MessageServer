@@ -30,8 +30,8 @@ export default class DistributedRPCHandler {
    * @private
    */
   private initGrpcClients = (): void => {
-    const PATH_PROTO_MAIL = path.join(__dirname, "./mail.proto");
-    const PATH_PROTO_DATA = path.join(__dirname, "./data.proto");
+    const PATH_PROTO_MAIL = path.join(__dirname, "./protos/mail.proto");
+    const PATH_PROTO_DATA = path.join(__dirname, "./protos/data.proto");
 
     const GRPC_CLIENTS = new Map();
 
