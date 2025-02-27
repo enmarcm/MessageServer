@@ -1,8 +1,13 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
+
+import { CONNECTION_STRING, JWT_CONFIG } from "../constants";
+import TSGooseHandler from "../utils/TSGooseHandler";
+export const ITSGooseHandler = new TSGooseHandler(CONNECTION_STRING);
+
+import Nexus from "../BO/Nexus/Nexus";
+import JWTManager from "../utils/JWTManager";
 
 import LogHistory from "../BO/LogHistory/LogHistory";
-import Nexus from "../BO/Nexus/Nexus";
 
 const data = [
   {
@@ -27,7 +32,6 @@ const servers = [
 
 export const iNexus = new Nexus({ data, servers });
 
-const uri = process.env.URI_MONGO || "";
-const collectionName = process.env.COLLECTION_LOGS || "";
+export const logger = new LogHistory();
 
-export const logger = new LogHistory(uri, collectionName);
+export const IJWTManager = new JWTManager(JWT_CONFIG);
