@@ -1,0 +1,10 @@
+{
+  "Nexus": {
+    "intervalToCheckDataBaseNexus": 5000
+  },
+  "security": {
+    "JWT": {
+      "expiresIn": "1d"
+    }
+  }
+}
