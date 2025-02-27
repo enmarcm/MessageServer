@@ -5,6 +5,9 @@
   "security": {
     "JWT": {
       "expiresIn": "1d"
+    },
+    "API_KEY": {
+      "default_uses": 50
     }
   }
 }
