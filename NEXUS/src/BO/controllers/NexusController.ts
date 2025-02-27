@@ -8,6 +8,7 @@ export default class NexusController {
     const item: NexusQueType = {
       type,
       content,
+      status: "PENDING",
     };
 
     iNexus.addQue(item);

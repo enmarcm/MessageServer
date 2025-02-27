@@ -8,10 +8,11 @@ import {
   ServerDataType,
   SMSContent,
 } from "./NexusTypes";
-import { EventEmitter } from "stream";
-import { logger } from "../../data/instances";
+import { logger, ITSGooseHandler } from "../../data/instances";
 import SelectionHandler from "./SelectionHandler";
 import DistributedRPCHandler from "./DistributedRPCHandler";
+import config from "../../config.json"
+import {QueueItemModel} from "../TGoose/models"
 
 /**
  * Nexus class to handle email and SMS sending operations.
@@ -21,7 +22,6 @@ export default class Nexus {
   public data: NexusDataType[];
   public servers: ServerDataType[];
   public grpcClientsMap: Map<any, { bo: GrpcClient; data: GrpcClient }>;
-  private eventEmitter: EventEmitter;
   private selectionHandler: SelectionHandler;
   private rpcHandler: DistributedRPCHandler;
 
@@ -38,21 +38,50 @@ export default class Nexus {
     this.que = [];
     this.data = data;
     this.servers = servers;
-    this.eventEmitter = new EventEmitter();
     this.selectionHandler = new SelectionHandler(this.data, this.servers);
     this.rpcHandler = new DistributedRPCHandler(this.servers);
     this.grpcClientsMap = this.rpcHandler.grpcClientsMap;
 
-    this.eventEmitter.on("newItem", this.processQueue);
+    setInterval(this.checkDatabaseForPendingItems, config.Nexus.intervalToCheckDataBaseNexus);
   }
 
   /**
-   * Adds an item to the queue and emits a newItem event.
+   * Adds an item to the queue and upload to DataBase.
    * @param {NexusQueType} item - The item to add to the queue.
    */
-  public addQue = (item: NexusQueType): void => {
-    this.que.push(item);
-    this.eventEmitter.emit("newItem");
+  public addQue = async (item: NexusQueType): Promise<void> => {
+    await ITSGooseHandler.addDocument({
+      Model: QueueItemModel,
+      data: item,
+    });
+  };
+
+  /**
+   * Checks the database for pending items and adds them to the queue.
+   * @private
+   */
+  private checkDatabaseForPendingItems = async (): Promise<void> => {
+    try {
+      const pendingItems = await ITSGooseHandler.searchAll<NexusQueType>({
+        Model: QueueItemModel,
+        condition: { status: "PENDING" },
+      });
+
+      for (const item of pendingItems) {
+        this.que.push(item);
+
+        if (!item?.id) return logger.error("Item without id");
+
+        await ITSGooseHandler.editDocument({
+          Model: QueueItemModel,
+          id: item.id.toString(),
+          newData: { status: "PROCESSING" },
+        });
+      }
+      this.processQueue();
+    } catch (error) {
+      logger.error(`Error checking database for pending items: ${error}`);
+    }
   };
 
   /**
@@ -60,16 +89,21 @@ export default class Nexus {
    * @private
    */
   private processQueue = async (): Promise<void> => {
-   try {
-    if (this.que.length > 0) {
-      const item = this.que.shift();
-      if (item) {
-        await this.sendItem(item);
+    try {
+      if (this.que.length > 0) {
+        const item = this.que.shift();
+        if (item && item.id) {
+          await this.sendItem(item);
+          await ITSGooseHandler.editDocument({
+            Model: QueueItemModel,
+            id: item.id.toString(),
+            newData: { status: "COMPLETED" },
+          });
+        }
       }
+    } catch (error) {
+      logger.error(`Error processing queue: ${error}`);
     }
-   } catch (error) {
-    
-   }
   };
 
   /**
@@ -125,7 +159,7 @@ export default class Nexus {
       logger.log(`Sending email to ${to} with subject ${subject} and Body`);
     } catch (error) {
       logger.error(`Error sending email: ${error}`);
-      this.addQue({ type: "EMAIL", content });
+      this.addQue({ type: "EMAIL", content, status: "PENDING" });
     } finally {
       if (serverToUse) {
         this.markServerAsFree(serverToUse);

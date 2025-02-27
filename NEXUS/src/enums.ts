@@ -16,3 +16,9 @@ export enum ElementSend {
   EMAIL = "EMAIL",
   SMS = "SMS",
 }
+
+export enum LogType {
+  LOG = "log",
+  WARN = "warn",
+  ERROR = "error",
+}
