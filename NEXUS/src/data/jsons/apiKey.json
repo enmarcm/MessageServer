@@ -1,5 +1,12 @@
-{
-    "validApiKeys": [
-        "enmanuel"
-    ]
-}
+[
+  {
+    "apiKey": "123456",
+    "remainingUses": 100,
+    "user": "user1"
+  },
+  {
+    "apiKey": "abcdef",
+    "remainingUses": 50,
+    "user": "user2"
+  }
+]

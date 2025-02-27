@@ -4,7 +4,7 @@ import midNotJson from "./midNotJson";
 import midNotFound from "./midNotFound";
 import midValidJson from "./midValidJson";
 import midToken from "./midToken";
-import { midApiKey } from "./midApiKey";
+import midApiKey from "./midApiKey";
 
 export const midJson = () => express.json();
 
