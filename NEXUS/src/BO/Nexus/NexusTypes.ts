@@ -1,14 +1,25 @@
+import { ObjectId } from "mongoose";
+
 export type ElementStatus = "ACTIVE" | "FULL";
 export type DataType = "SMS" | "EMAIL";
 export type ServerStatus = "ONLINE" | "OFFLINE";
-export type NexusQueType = { type: DataType; content: Content };
+export type NexusQueType = {
+  id?: string | ObjectId;
+  type: DataType;
+  content: Content;
+  status: "PENDING" | "COMPLETED" | "ERROR";
+};
+export enum DataTypeEnum {
+  SMS = "SMS",
+  EMAIL = "EMAIL",
+}
 
 export type ServerDataType = {
   name: String;
   host: String;
   port: number;
   status: ServerStatus;
-  use: "FREE" | "BUSSY"
+  use: "FREE" | "BUSSY";
   typeInfo: "SMS" | "EMAIL";
 };
 export type NexusDataType = {
@@ -23,15 +34,15 @@ export interface ConstructorNexusData {
   servers: Array<ServerDataType>;
 }
 
-interface EmailContent {
+export interface EmailContent {
   to: string;
   subject: string;
   body: string;
 }
 
-interface SMSContent {
+export interface SMSContent {
   to: string;
   body: string;
 }
 
-type Content = EmailContent | SMSContent;
+export type Content = EmailContent | SMSContent;
