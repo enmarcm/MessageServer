@@ -13,6 +13,6 @@ export const CONNECTION_STRING = {
 }
 
 export const JWT_CONFIG = {
-  SECRET_WORD: process.env.SECRET_WORD as string,
-  expiresIn: config.security.JWT.expiresIn as string,
+  SECRET_WORD: process.env.SECRET_WORD as string ,
+  expiresIn: config.security.JWT.expiresIn as string ,
 };

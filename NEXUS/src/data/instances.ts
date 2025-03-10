@@ -8,6 +8,9 @@ import Nexus from "../BO/Nexus/Nexus";
 import JWTManager from "../utils/JWTManager";
 
 import LogHistory from "../BO/LogHistory/LogHistory";
+import PgHandler from "../utils/PgHandler";
+import config from "../config.json";
+import querys from "../data/jsons/querys.json";
 
 const data = [
   {
@@ -35,3 +38,5 @@ export const iNexus = new Nexus({ data, servers });
 export const logger = new LogHistory();
 
 export const IJWTManager = new JWTManager(JWT_CONFIG);
+
+export const iPgHandler = new PgHandler({ config: config.database, querys });

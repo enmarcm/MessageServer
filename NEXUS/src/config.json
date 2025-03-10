@@ -9,5 +9,16 @@
     "API_KEY": {
       "default_uses": 50
     }
+  },
+  "database": {
+    "host": "localhost",
+    "database": "nexus",
+    "user": "postgres",
+    "password": "1234",
+    "port": 5432,
+    "ssl": false,
+    "max": 31,
+    "idleTimeoutMillis": 1000,
+    "maxUses": 7500
   }
 }

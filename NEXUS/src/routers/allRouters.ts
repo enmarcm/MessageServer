@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ReqRes } from "../types";
 import { iNexus, logger } from "../data/instances";
+import { AuthRouter } from "./AuthRouter";
 import CryptManager from "../utils/CryptManager";
 
 export const MainRouter = Router();
@@ -39,3 +40,5 @@ MainRouter.get("/showLogs", async (data: ReqRes) => {
   const logs = await logger.getAllLogs();
   data.res.json(logs);
 });
+
+export {AuthRouter}

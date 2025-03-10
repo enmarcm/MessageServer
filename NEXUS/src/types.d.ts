@@ -117,7 +117,7 @@ export type JWTManagerProps = {
 
 export interface GenerateTokenData {
   id: string;
-  userName: string;
   email: string;
   image?: string;
+  profile?: string;
 }

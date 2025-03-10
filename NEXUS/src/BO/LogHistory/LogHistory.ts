@@ -11,8 +11,8 @@
  * ```
  */
 
-import {Log } from "../TGoose/LogItem";
-import { LogModel } from "../TGoose/LogItem";
+import { Log } from "../TGoose/Items/LogItem";
+import { LogModel } from "../TGoose/models";
 import { ITSGooseHandler } from "../../data/instances";
 import { LogType } from "../../enums";
 

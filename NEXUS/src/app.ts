@@ -9,7 +9,7 @@ import {
   midValidJson,
 } from "./middlewares/middlewares";
 import { PORT } from "./constants";
-import { MainRouter } from "./routers/allRouters";
+import { AuthRouter, MainRouter } from "./routers/allRouters";
 import { ApiRouter } from "./routers/ApiRouter";
 
 const app = express();
@@ -22,6 +22,7 @@ app.use(midCors());
 app.use(midNotJson);
 
 app.use("/", MainRouter);
+app.use("/login", AuthRouter)
 app.use("/api", midApiKey, ApiRouter);
 
 app.use(midNotFound);

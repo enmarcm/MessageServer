@@ -12,14 +12,14 @@ interface PoolConfig {
   maxUses: number;
 }
 
-type QueryType = {[key: string]: string}
+type QueryType = { [key: string]: string };
 
 /**
  * Clase que maneja la conexión y ejecución de consultas a una base de datos PostgreSQL usando Pg-Pool.
  */
 class PgHandler {
   private config: PoolConfig;
-  private querys: QueryType;
+  private querys: QueryType | any;
   private pool: Pool<Client>;
 
   /**
@@ -121,6 +121,43 @@ class PgHandler {
       return { error };
     } finally {
       await client.end();
+    }
+  };
+
+  /**
+   * Retorna un valor específico de una consulta.
+   * @async
+   * @param {Object} options - Opciones para la ejecución de la consulta.
+   * @param {string} options.key - Clave de la consulta predefinida a ejecutar.
+   * @param {Array} options.params - Parámetros para la consulta.
+   * @param {string} options.prop - Propiedad específica a retornar del resultado.
+   * @returns {Promise<any>} - Valor de la propiedad especificada o false si no se encuentra.
+   */
+  returnByProp = async ({
+    key,
+    params,
+    prop,
+  }: {
+    key: string;
+    params: any[];
+    prop: string;
+  }): Promise<any> => {
+    try {
+      const result = await this.executeQuery({
+        key,
+        params,
+      });
+
+
+      if (Array.isArray(result)) {
+        const [firstResult] = result;
+        return firstResult && firstResult[prop] ? firstResult[prop] : false;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      console.error(`Ocurrio un error en el metodo returnByProp: ${error.message} del objeto PgHandler.ts`);
+      return { error: error.message };
     }
   };
 }

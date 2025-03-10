@@ -1,6 +1,5 @@
 import { prop, modelOptions } from "@typegoose/typegoose";
-import { ITSGooseHandler } from "../../data/instances";
-import { LogType } from "../../enums";
+import { LogType } from "../../../enums";
 
 @modelOptions({
   schemaOptions: {
@@ -21,7 +20,7 @@ import { LogType } from "../../enums";
     },
   },
 })
-class Log {
+export class Log {
   @prop({ required: true, type: String })
   public message!: string;
 
@@ -36,7 +35,3 @@ class Log {
   @prop({ default: () => new Date(), type: Date })
   public timestamp!: Date;
 }
-
-const LogModel = ITSGooseHandler.createModel<Log>({ clazz: Log });
-
-export { LogModel, Log };

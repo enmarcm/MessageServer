@@ -1,0 +1,8 @@
+{
+ "verifyBlockUser": "SELECT bl_user FROM security.user WHERE em_user = $1",
+ "verifyAttemps": "SELECT at_user FROM security.user WHERE em_user = $1",
+ "getUserByEmail": "SELECT u.id_user, u.na_user, u.ln_user, u.em_user, u.pa_user, u.bl_user,u.at_user, p.de_profile FROM security.user u INNER JOIN security.profile p ON u.id_profile = p.id_profile  WHERE em_user = $1",
+ "reduceAttemps": "UPDATE security.user SET at_user = at_user - 1 WHERE em_user = $1",
+ "blockUser": "UPDATE security.user SET bl_user = true WHERE em_user = $1"
+ ,"resetAttemps": "UPDATE security.user SET at_user = 5 WHERE em_user = $1"
+}
