@@ -31,11 +31,19 @@ export default class AuthController {
       const mappedUserInfo = {
         id: userInfo["id_user"],
         email: userInfo["em_user"],
+        name: `${userInfo["na_user"]} ${userInfo["ln_user"]}`,
+        profile: userInfo["de_profile"],
       } as any;
 
       const token = IJWTManager.generateToken(mappedUserInfo);
 
-      return res.status(200).json({ message: "User logged in", token });
+      return res
+        .status(200)
+        .json({
+          message: "User logged in",
+          token,
+          ...mappedUserInfo,
+        });
     } catch (error: any) {
       logger.error(
         `An error occurred in the method login: ${error.message} of the AuthController.ts object`

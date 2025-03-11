@@ -12,9 +12,8 @@ class JWTManager {
 
   generateToken(props: GenerateTokenData) {
     try {
-      const { id, email, profile } = props;
 
-      const token = jwt.sign({ id, email, profile }, this.SECRET_WORD, {
+      const token = jwt.sign(props, this.SECRET_WORD, {
         expiresIn: this.expiresIn,
       });
 
