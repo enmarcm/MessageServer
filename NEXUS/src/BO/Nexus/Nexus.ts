@@ -1,4 +1,4 @@
-import GrpcClient from "../../utils/GrpcClient";
+gitimport GrpcClient from "../../utils/GrpcClient";
 import {
   ConstructorNexusData,
   Content,
