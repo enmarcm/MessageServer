@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package data;
+
+service DataService {
+  rpc GetServerStats (ServerStatsRequest) returns (ServerStatsResponse) {}
+}
+
+message ServerStatsRequest {}
+
+message ServerStatsResponse {
+  string cpu_usage = 1;
+  string free_memory = 2;
+  string total_memory = 3;
+  string disk_usage = 4;
+}
