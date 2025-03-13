@@ -8,6 +8,7 @@ const enum EAuthModelQuerys {
   REDUCE_ATTEMPS = "reduceAttemps",
   BLOCK_USER = "blockUser",
   RESET_ATTEMPS = "resetAttemps",
+  SEARCH_USER_ID = "getUserById"
 }
 
 const enum EAuthModelProps {
@@ -170,6 +171,41 @@ export class AuthModel {
       const userInfo = await iPgHandler.executeQuery({
         key: EAuthModelQuerys.SEARCH_USER,
         params: [email],
+      });
+
+      return userInfo;
+    } catch (error: any) {
+      logger.error(
+        `An error occurred in the method getUserInfo: ${error.message} of the AuthModel.ts object`
+      );
+      return { error: error.message };
+    }
+  }
+
+  static executeMethod = async ({ method, params }: {method: any, params: any}) => {
+
+    try {
+      const parametros = [];
+      for (const key in params) {
+        parametros.push(params[key]);
+      }
+
+      const result = await iPgHandler.executeQuery({
+        key: method,
+        params: parametros,
+      });
+
+      return result;
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
+
+  static searchUserById = async ({id}: any) =>{
+    try {
+      const userInfo = await iPgHandler.executeQuery({
+        key: EAuthModelQuerys.SEARCH_USER_ID,
+        params: [id],
       });
 
       return userInfo;
