@@ -32,6 +32,7 @@ export default class DistributedRPCHandler {
   private initGrpcClients = (): void => {
     const PATH_PROTO_MAIL = path.join(__dirname, "./protos/mail.proto");
     const PATH_PROTO_DATA = path.join(__dirname, "./protos/data.proto");
+    const PATH_PROTO_SMS = path.join(__dirname, "./protos/sms.proto");
 
     const GRPC_CLIENTS = new Map();
 
@@ -39,7 +40,7 @@ export default class DistributedRPCHandler {
       const TARGET = `${server.host}:${server.port}`;
 
       const boClient = new GrpcClient({
-        protoPath: server.typeInfo === "EMAIL" ?  PATH_PROTO_MAIL : "",
+        protoPath: server.typeInfo === "EMAIL" ?  PATH_PROTO_MAIL : PATH_PROTO_SMS,
         packageName: this.getPackageName(server.typeInfo),
         serviceName: this.getServiceName(server.typeInfo),
         methodName: this.getMethodName(server.typeInfo),

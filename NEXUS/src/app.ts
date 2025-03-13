@@ -6,11 +6,13 @@ import {
   midJson,
   midNotFound,
   midNotJson,
+  midToken,
   midValidJson,
 } from "./middlewares/middlewares";
 import { PORT } from "./constants";
 import { AuthRouter, MainRouter } from "./routers/allRouters";
 import { ApiRouter } from "./routers/ApiRouter";
+import { toProcessRouter } from "./routers/toProcessRouter";
 
 const app = express();
 
@@ -23,8 +25,15 @@ app.use(midNotJson);
 
 app.use("/", MainRouter);
 app.use("/login", AuthRouter)
-app.use("/api", midApiKey, ApiRouter);
 
+/**
+ * @example
+ * /api/sendMail
+ * /api/sendSMS
+ * -H "x-api-key : 123456"
+ */
+app.use("/api", midApiKey, ApiRouter);
+app.use("/toProcess", midToken, toProcessRouter)
 app.use(midNotFound);
 
 startServer({ app, PORT });

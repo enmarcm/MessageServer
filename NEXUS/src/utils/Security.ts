@@ -22,7 +22,7 @@ class Security {
       if (this.permissions.size > 0) return;
 
       const permisos = await this.controller.executeMethod({
-        method: "obtenerPermisos",
+        method: "obtainPermissions",
         params: [],
       });
 
@@ -47,6 +47,8 @@ class Security {
   };
 
   private putPermissionsMap = ({ permisos }: { permisos: any[] }): void => {
+
+
     const result = permisos.reduce((acc: any, permiso: any) => {
       const { profile, object, method } = permiso;
 
@@ -60,6 +62,7 @@ class Security {
       const porObject = result[profile];
       this.permissions.set(profile, porObject);
     }
+
   };
 
   // @ts-ignore
@@ -86,7 +89,9 @@ class Security {
     try {
       await this.verifyLoadPermissions();
 
+
       try {
+
         const permiso = this.permissions
           .get(profile)
           ?.[object]?.map((permission: string) => permission.toLowerCase())
@@ -113,21 +118,17 @@ class Security {
     params?: any[];
   }): Promise<any> => {
     try {
-      const path = `${this.pathBO}/${object}.js`;
+      const path = `${this.pathBO}/${object}`;
       const module = await import(path);
       const moduleReady = module.default ?? module[object];
       const obj = new moduleReady();
 
-      const lowerCaseMethod = method.toLowerCase();
-      const methodName =
-        Object.keys(obj).find((key) => key.toLowerCase() === lowerCaseMethod) ??
-        Object.keys(moduleReady).find(
-          (key) => key.toLowerCase() === lowerCaseMethod
-        );
+      const methodName = method.toLowerCase();
 
       const metodoAEjecutar = methodName
         ? obj[methodName] ?? moduleReady[methodName]
         : undefined;
+
 
       if (!metodoAEjecutar) {
         throw new Error(`Method ${method} not found in object ${object}`);

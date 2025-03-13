@@ -11,8 +11,8 @@ import {
 import { logger, ITSGooseHandler } from "../../data/instances";
 import SelectionHandler from "./SelectionHandler";
 import DistributedRPCHandler from "./DistributedRPCHandler";
-import config from "../../config.json"
-import {QueueItemModel} from "../TGoose/models"
+import config from "../../config.json";
+import { QueueItemModel } from "../TGoose/models";
 
 /**
  * Nexus class to handle email and SMS sending operations.
@@ -42,7 +42,10 @@ export default class Nexus {
     this.rpcHandler = new DistributedRPCHandler(this.servers);
     this.grpcClientsMap = this.rpcHandler.grpcClientsMap;
 
-    setInterval(this.checkDatabaseForPendingItems, config.Nexus.intervalToCheckDataBaseNexus);
+    setInterval(
+      this.checkDatabaseForPendingItems,
+      config.Nexus.intervalToCheckDataBaseNexus
+    );
   }
 
   /**
@@ -136,7 +139,8 @@ export default class Nexus {
 
     try {
       serverToUse = await this.selectionHandler.selectServer(
-        this.grpcClientsMap
+        this.grpcClientsMap,
+        "EMAIL"
       );
       mailToUse = await this.selectionHandler.selectMail();
 
@@ -210,8 +214,44 @@ export default class Nexus {
    * Sends an SMS.
    * @param {SMSContent} content - The SMS content.
    */
-  public sendSMS = (_content: SMSContent): void => {
-    // Implementar lógica para enviar SMS
+  public sendSMS = async (content: SMSContent): Promise<void> => {
+    const { to, body } = content;
+    if (!to || !body) return;
+
+    let serverToUse: ServerDataType | null = null;
+
+    try {
+      serverToUse = await this.selectionHandler.selectServer(
+        this.grpcClientsMap,
+        "SMS"
+      );
+
+      const contentMapped = { to, body };
+
+      await new Promise<void>((resolve, reject) => {
+        this.grpcClientsMap
+          .get(serverToUse)
+          ?.bo.invokeMethod(contentMapped, (err, response) => {
+            if (err) {
+              logger.error(err);
+              reject(err);
+            } else {
+              logger.log(`SMS sent: ${JSON.stringify(response)}`);
+
+              resolve(response);
+            }
+          });
+      });
+
+      logger.log(`Sending SMS to ${to} with message ${body}`);
+    } catch (error) {
+      logger.error(`Error sending SMS: ${error}`);
+      this.addQue({ type: "SMS", content, status: "PENDING" });
+    } finally {
+      if (serverToUse) {
+        this.markServerAsFree(serverToUse);
+      }
+    }
   };
 
   /**

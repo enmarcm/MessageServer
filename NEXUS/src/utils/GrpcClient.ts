@@ -26,7 +26,7 @@ interface GrpcClientConfig {
  * import GrpcClient from "./GrpcClient";
  *
  * const grpcClientInstance = new GrpcClient({
- *   protoPath: "./protos/mail.proto",
+ *   protoPath: "./protos/e.proto",
  *   packageName: "mail",
  *   serviceName: "MailService",
  *   methodName: "SendMail",
@@ -127,6 +127,7 @@ class GrpcClient {
       }
 
       const method = (this.client as any)[this.methodName];
+      
       if (typeof method !== "function") {
         throw new Error(`Method ${this.methodName} not found in client`);
       }

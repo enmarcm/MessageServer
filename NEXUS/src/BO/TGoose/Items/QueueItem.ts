@@ -25,12 +25,6 @@ export class QueueItem {
   @prop({ required: true, type: String })
   public content!: any;
 
-  @prop({ required: true, type: String })
-  public from!: string;
-
-  @prop({ required: true, type: String })
-  public to!: string;
-
   @prop({
     required: true,
     enum: ["PENDING", "COMPLETED", "ERROR"],

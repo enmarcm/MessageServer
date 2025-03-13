@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package sms;
+
+// Definición del servicio SMSService
+service SMSService {
+  // Método para enviar SMS
+  rpc SendSMS(SMSRequest) returns (SMSResponse);
+}
+
+// Mensaje de solicitud para enviar SMS
+message SMSRequest {
+  string to = 1;       // Número de teléfono del destinatario
+  string message = 2;  // Contenido del mensaje SMS
+}
+
+// Mensaje de respuesta para enviar SMS
+message SMSResponse {
+  bool success = 1;    // Indica si el envío fue exitoso
+  string error = 2;    // Mensaje de error en caso de fallo
+}

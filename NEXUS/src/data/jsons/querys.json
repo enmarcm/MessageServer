@@ -4,5 +4,7 @@
  "getUserByEmail": "SELECT u.id_user, u.na_user, u.ln_user, u.em_user, u.pa_user, u.bl_user,u.at_user, p.de_profile FROM security.user u INNER JOIN security.profile p ON u.id_profile = p.id_profile  WHERE em_user = $1",
  "reduceAttemps": "UPDATE security.user SET at_user = at_user - 1 WHERE em_user = $1",
  "blockUser": "UPDATE security.user SET bl_user = true WHERE em_user = $1"
- ,"resetAttemps": "UPDATE security.user SET at_user = 5 WHERE em_user = $1"
+ ,"resetAttemps": "UPDATE security.user SET at_user = 5 WHERE em_user = $1",
+ "obtainPermissions": "SELECT p.de_profile as profile , o.de_object as object , m.de_method as method FROM security.permission as e INNER JOIN security.profile as p ON e.id_profile = p.id_profile INNER JOIN security.method as m ON m.id_method = e.id_method INNER JOIN security.object as o ON m.id_object = o.id_object",
+ "getUserById": "SELECT u.id_user, u.na_user, u.ln_user, u.em_user, u.pa_user, u.bl_user,u.at_user, p.de_profile FROM security.user u INNER JOIN security.profile p ON u.id_profile = p.id_profile WHERE id_user = $1"
 }

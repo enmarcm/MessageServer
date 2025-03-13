@@ -8,6 +8,10 @@
     },
     "API_KEY": {
       "default_uses": 50
+    },
+    "moduleSecurity": {
+      "pathBO": "../BO",
+      "loadInit": true
     }
   },
   "database": {

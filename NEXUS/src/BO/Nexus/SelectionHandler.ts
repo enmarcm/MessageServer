@@ -73,14 +73,19 @@ export default class SelectionHandler {
   /**
    * Gets the server with the most available resources.
    * @param {Map<any, { bo: any; data: any }>} grpcClientsMap - The map of gRPC clients.
+   * @param {string} serviceType - The type of service (EMAIL or SMS).
    * @returns {Promise<ServerDataType | null>} The server with the most resources or null if an error occurs.
    */
   public async getServerWithMostResources(
-    grpcClientsMap: Map<any, { bo: any; data: any }>
+    grpcClientsMap: Map<any, { bo: any; data: any }>,
+    serviceType: 'EMAIL' | 'SMS'
   ): Promise<ServerDataType | null> {
     try {
       const serverResources = await Promise.all(
         Array.from(grpcClientsMap.entries()).map(async ([server, clients]) => {
+          if (server.typeInfo !== serviceType) {
+            return { server, availableResources: 0 };
+          }
           try {
             const response = await new Promise<any>((resolve, reject) => {
               clients.data.invokeMethod({}, (err: Error | null, res: any) => {
@@ -129,61 +134,66 @@ export default class SelectionHandler {
   /**
    * Selects a free server with the most resources.
    * @param {Map<any, { bo: any; data: any }>} grpcClientsMap - The map of gRPC clients.
+   * @param {string} serviceType - The type of service (EMAIL or SMS).
    * @param {number} [attempts=0] - The number of attempts made to select a server.
    * @returns {Promise<ServerDataType>} The selected server.
    * @throws Will throw an error if no free servers are available after 5 attempts.
    */
   public async selectServer(
     grpcClientsMap: Map<any, { bo: any; data: any }>,
+    serviceType: 'EMAIL' | 'SMS',
     attempts: number = 0
   ): Promise<ServerDataType> {
     const maxAttempts = 5;
-    const retryDelay = 1000; // 1 second
-
-    const freeServers = this.getFreeServers();
+    const retryDelay = 1000; 
+  
+    const freeServers = this.getFreeServers(serviceType);
 
     if (freeServers.length > 0) {
       const serverWithMostResources = await this.getServerWithMostResources(
-        grpcClientsMap
+        grpcClientsMap,
+        serviceType
       );
       if (serverWithMostResources) {
-        const selectedServer = this.markServerAsBusy(serverWithMostResources);
+        const selectedServer = this.markServerAsBusy(serverWithMostResources, serviceType);
         return selectedServer;
       }
     }
-
+  
     if (attempts < maxAttempts) {
       logger.log(
         `Attempt ${
           attempts + 1
-        } failed. No free servers available. Retrying in ${
+        } failed. No free servers available for ${serviceType}. Retrying in ${
           retryDelay / 1000
         } second(s)...`
       );
       await this.delay(retryDelay);
-      return this.selectServer(grpcClientsMap, attempts + 1);
+      return this.selectServer(grpcClientsMap, serviceType, attempts + 1);
     }
-
-    throw new Error("No free servers available after 5 attempts");
+  
+    throw new Error(`No free servers available for ${serviceType} after 5 attempts`);
   }
 
   /**
    * Gets the list of free servers.
    * @private
+   * @param {string} serviceType - The type of service (EMAIL or SMS).
    * @returns {ServerDataType[]} The list of free servers.
    */
-  private getFreeServers(): ServerDataType[] {
-    return this.servers.filter((server) => server.use === "FREE");
+  private getFreeServers(serviceType: 'EMAIL' | 'SMS'): ServerDataType[] {
+    return this.servers.filter((server) => server.use === 'FREE' && server.typeInfo === serviceType);
   }
 
   /**
    * Marks a server as busy.
    * @private
    * @param {ServerDataType} server - The server to mark as busy.
+   * @param {string} serviceType - The type of service (EMAIL or SMS).
    * @returns {ServerDataType} The server marked as busy.
    */
-  private markServerAsBusy(server: ServerDataType): ServerDataType {
-    const serverIndex = this.servers.findIndex((s) => s === server);
+  private markServerAsBusy(server: ServerDataType, serviceType: 'EMAIL' | 'SMS'): ServerDataType {
+    const serverIndex = this.servers.findIndex((s) => s === server && s.typeInfo === serviceType);
 
     if (serverIndex !== -1) this.servers[serverIndex].use = "BUSSY";
 
