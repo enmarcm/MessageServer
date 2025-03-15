@@ -1,6 +1,33 @@
 {
   "Nexus": {
-    "intervalToCheckDataBaseNexus": 5000
+    "intervalToCheckDataBaseNexus": 5000,
+    "servers": [
+      {
+        "name": "MailServer1",
+        "host": "0.0.0.0",
+        "port": 50051,
+        "status": "ONLINE",
+        "use": "FREE",
+        "typeInfo": "EMAIL"
+      },
+      {
+        "name": "SMSServer1",
+        "host": "0.0.0.0",
+        "port": 50052,
+        "status": "ONLINE",
+        "use": "FREE",
+        "typeInfo": "SMS"
+      }
+    ],
+    "data": [
+      {
+        "type": "EMAIL",
+        "content": "theenmanuel123@gmail.com",
+        "status": "ACTIVE",
+        "rest": 1000,
+        "credentials": {}
+      }
+    ]
   },
   "security": {
     "JWT": {

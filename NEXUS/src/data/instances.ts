@@ -13,37 +13,10 @@ import querys from "../data/jsons/querys.json";
 import Security from "../utils/Security";
 import PermissionController from "../BO/controllers/PermissionController";
 
-const data = [
-  {
-    type: "EMAIL" as const,
-    content: "theenmanuel123@gmail.com",
-    status: "ACTIVE" as const,
-    rest: 1000,
-    credentials: {},
-  },
-];
-
-const servers = [
-  {
-    name: "MailServer1",
-    host: "0.0.0.0",
-    port: 50051,
-    status: "ONLINE" as const,
-    use: "FREE" as const,
-    typeInfo: "EMAIL" as const,
-  },
-  {
-    name: "SMSServer1",
-    host: "0.0.0.0",
-    port: 50052,
-    status: "ONLINE" as const,
-    use: "FREE" as const,
-    typeInfo: "SMS" as const,
-  },
-
-];
-
-export const iNexus = new Nexus({ data, servers });
+export const iNexus = new Nexus({
+  data: config.Nexus.data as any,
+  servers: config.Nexus.servers as any,
+});
 
 export const logger = new LogHistory();
 
@@ -51,4 +24,7 @@ export const IJWTManager = new JWTManager(JWT_CONFIG);
 
 export const iPgHandler = new PgHandler({ config: config.database, querys });
 
-export const iSecurity = new Security({ controller: PermissionController, config: config.security.moduleSecurity });
+export const iSecurity = new Security({
+  controller: PermissionController,
+  config: config.security.moduleSecurity,
+});
