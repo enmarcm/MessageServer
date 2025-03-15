@@ -32,4 +32,13 @@ export class QueueItem {
     type: String,
   })
   public status!: "PENDING" | "COMPLETED" | "ERROR";
+
+  @prop({ required: true, type: Date, default: Date.now })
+  public createdAt!: Date;
+
+  @prop({ required: false, type: String })
+  public from?: string;
+
+  @prop({ required: false, type: String })
+  public to?: string;
 }
