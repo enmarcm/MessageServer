@@ -13,6 +13,8 @@ import SelectionHandler from "./SelectionHandler";
 import DistributedRPCHandler from "./DistributedRPCHandler";
 import config from "../../config.json";
 import { QueueItemModel } from "../TGoose/models";
+import LogHistory from "../LogHistory/LogHistory";
+import { SMSNumber } from "../../constants";
 
 /**
  * Nexus class to handle email and SMS sending operations.
@@ -24,6 +26,7 @@ export default class Nexus {
   public grpcClientsMap: Map<any, { bo: GrpcClient; data: GrpcClient }>;
   private selectionHandler: SelectionHandler;
   private rpcHandler: DistributedRPCHandler;
+  private logHistory: LogHistory;
 
   /**
    * Creates an instance of Nexus.
@@ -41,6 +44,7 @@ export default class Nexus {
     this.selectionHandler = new SelectionHandler(this.data, this.servers);
     this.rpcHandler = new DistributedRPCHandler(this.servers);
     this.grpcClientsMap = this.rpcHandler.grpcClientsMap;
+    this.logHistory = new LogHistory();
 
     setInterval(
       this.checkDatabaseForPendingItems,
@@ -116,11 +120,11 @@ export default class Nexus {
    */
   private async sendItem(item: NexusQueType): Promise<void> {
     const sendMethod = item.type === "EMAIL" ? "sendMail" : "sendSMS";
-  
+
     const { content }: { content: Content } = item;
-  
+
     if (!content?.to || !content?.body) return;
-  
+
     await (this as any)[sendMethod](content, item.id);
   }
 
@@ -128,24 +132,32 @@ export default class Nexus {
    * Sends an email.
    * @param {EmailContent} content - The email content.
    */
-  public sendMail = async (content: EmailContent, queueItemId: string): Promise<void> => {
+  public sendMail = async (
+    content: EmailContent,
+    queueItemId: string
+  ): Promise<void> => {
     const { to, body, subject } = content;
     if (!to || !body || !subject) return;
-  
+
     if (!this.isValidEmail(to)) return;
-  
+
     let serverToUse: ServerDataType | null = null;
     let mailToUse: NexusDataType | null = null;
-  
+
     try {
       serverToUse = await this.selectionHandler.selectServer(
         this.grpcClientsMap,
         "EMAIL"
       );
       mailToUse = await this.selectionHandler.selectMail();
-  
-      const contentMapped = { from: mailToUse.content, to, subject, body };
-  
+
+      const contentMapped = {
+        from: mailToUse.content.toString(),
+        to,
+        subject,
+        body,
+      };
+
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
@@ -159,17 +171,29 @@ export default class Nexus {
             }
           });
       });
-  
+
       logger.log(`Sending email to ${to} with subject ${subject} and Body`);
-  
+      this.logHistory.logEmailActivity(
+        mailToUse.content.toString(),
+        to,
+        subject,
+        "COMPLETED"
+      );
+
       // Actualizar el registro original en la cola
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
         id: queueItemId,
-        newData: { from: mailToUse.content, status: "COMPLETED" },
+        newData: { from: mailToUse.content.toString(), status: "COMPLETED" },
       });
     } catch (error) {
       logger.error(`Error sending email: ${error}`);
+      this.logHistory.logEmailActivity(
+        mailToUse?.content?.toString() || "unknown",
+        to,
+        subject,
+        "ERROR"
+      );
       this.addQue({ type: "EMAIL", content, status: "PENDING" });
     } finally {
       if (serverToUse) {
@@ -221,20 +245,23 @@ export default class Nexus {
    * Sends an SMS.
    * @param {SMSContent} content - The SMS content.
    */
-  public sendSMS = async (content: SMSContent, queueItemId: string): Promise<void> => {
+  public sendSMS = async (
+    content: SMSContent,
+    queueItemId: string
+  ): Promise<void> => {
     const { to, body } = content;
     if (!to || !body) return;
-  
+
     let serverToUse: ServerDataType | null = null;
-  
+
     try {
       serverToUse = await this.selectionHandler.selectServer(
         this.grpcClientsMap,
         "SMS"
       );
-  
+
       const contentMapped = { to, body };
-  
+
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
@@ -248,17 +275,24 @@ export default class Nexus {
             }
           });
       });
-  
+
       logger.log(`Sending SMS to ${to} with message ${body}`);
-  
+      this.logHistory.logSMSActivity(
+        SMSNumber.mainNumber,
+        to,
+        body,
+        "COMPLETED"
+      );
+
       // Actualizar el registro original en la cola
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
         id: queueItemId,
-        newData: { from: "your-sms-service", status: "COMPLETED" },
+        newData: { from: SMSNumber.mainNumber, status: "COMPLETED" },
       });
     } catch (error) {
       logger.error(`Error sending SMS: ${error}`);
+      this.logHistory.logSMSActivity(SMSNumber.mainNumber, to, body, "ERROR");
       this.addQue({ type: "SMS", content, status: "PENDING" });
     } finally {
       if (serverToUse) {

@@ -1,23 +1,16 @@
-/**
- * LogHistory class for logging messages to a MongoDB database.
- *
- * @example
- * ```typescript
- * const logHistory = new LogHistory();
- *
- * logHistory.log('This is a test log message');
- * logHistory.warn('This is a test warning message');
- * logHistory.error('This is a test error message');
- * ```
- */
-
 import { Log } from "../TGoose/Items/LogItem";
 import { LogModel } from "../TGoose/models";
 import { ITSGooseHandler } from "../../data/instances";
 import { LogType } from "../../enums";
+import WebSocket from "ws";
 
 export default class LogHistory {
   private LogModel = LogModel;
+  private wsServer: WebSocket.Server;
+
+  constructor() {
+    this.wsServer = new WebSocket.Server({ port: 8080 });
+  }
 
   /**
    * Method to log data to the database.
@@ -95,5 +88,44 @@ export default class LogHistory {
       console.error("Error retrieving logs:", error);
       return [];
     }
+  }
+
+  /**
+   * Method to log email activity.
+   * @param {string} from - The sender email address.
+   * @param {string} to - The recipient email address.
+   * @param {string} subject - The email subject.
+   * @param {string} status - The status of the email (PROCESSING, COMPLETED, ERROR).
+   */
+  public logEmailActivity(from: string, to: string, subject: string, status: string): void {
+    const message = `Email from ${from} to ${to} with subject "${subject}" is ${status}`;
+    this.logMessage(message, LogType.LOG);
+    this.emitLog({ type: "EMAIL", from, to, subject, status });
+  }
+
+  /**
+   * Method to log SMS activity.
+   * @param {string} from - The sender identifier.
+   * @param {string} to - The recipient phone number.
+   * @param {string} body - The SMS body.
+   * @param {string} status - The status of the SMS (PROCESSING, COMPLETED, ERROR).
+   */
+  public logSMSActivity(from: string, to: string, body: string, status: string): void {
+    const message = `SMS from ${from} to ${to} with body "${body}" is ${status}`;
+    this.logMessage(message, LogType.LOG);
+    this.emitLog({ type: "SMS", from, to, body, status });
+  }
+
+  /**
+   * Method to emit log messages via WebSocket.
+   * @param {object} log - The log message object.
+   * @private
+   */
+  private emitLog(log: object): void {
+    this.wsServer.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(log));
+      }
+    });
   }
 }
