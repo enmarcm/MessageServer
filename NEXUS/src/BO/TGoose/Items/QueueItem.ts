@@ -2,6 +2,7 @@ import { prop, modelOptions } from "@typegoose/typegoose";
 
 @modelOptions({
   schemaOptions: {
+    collection: "queueItem",
     toObject: {
       transform: function (_doc, ret) {
         ret.id = ret._id;
