@@ -307,6 +307,23 @@ class TSGooseHandler implements TSGooseHandlerProps {
       };
     }
   }
+
+
+  async countDocuments<T>({
+    Model,
+    condition,
+  }: {
+    Model: ReturnModelType<ClazzT<T>>;
+    condition: Object;
+  }) {
+    try {
+      const count = await Model.countDocuments(condition);
+      return count;
+    } catch (error) {
+      console.error(error);
+      return { error: `Error counting documents in model ${Model.modelName}` };
+    }
+  }
 }
 
 export default TSGooseHandler;

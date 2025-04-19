@@ -8,6 +8,7 @@ class MailService(mail_pb2_grpc.MailServiceServicer):
 
     def SendMail(self, request, context):
         from_value = getattr(request, 'from')  
+        print(f"Sending mail from {from_value} to {request.to} with subject '{request.subject}'")
         response = self.MailSender.send_message(
             from_email=from_value,
             destination=request.to,
@@ -19,3 +20,12 @@ class MailService(mail_pb2_grpc.MailServiceServicer):
             return mail_pb2.MailResponse(status=f"Mail sent successfully to {request.to}")
         else:
             return mail_pb2.MailResponse(status="Failed to send mail")
+    
+    def CheckBounceStatus(self, request, context):
+        # Ajuste para incluir el campo 'to' en la llamada
+        result = self.MailSender.gmail_wrapper.check_bounce_status(
+            from_email=getattr(request, 'from'),
+            to=getattr(request, 'to'),
+            sent_time=request.sent_time
+        )
+        return mail_pb2.BounceResponse(status=result["status"], reason=result["reason"])

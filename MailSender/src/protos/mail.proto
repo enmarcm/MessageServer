@@ -4,14 +4,7 @@ package mail;
 
 service MailService {
   rpc SendMail (MailRequest) returns (MailResponse) {}
-}
-
-service SMSService {
-  rpc SendSMS (SMSRequest) returns (SMSResponse) {}
-}
-
-service LogService {
-  rpc SendLogs (LogRequest) returns (LogResponse) {}
+  rpc CheckBounceStatus (BounceRequest) returns (BounceResponse) {}
 }
 
 message MailRequest {
@@ -25,19 +18,13 @@ message MailResponse {
   string status = 1;
 }
 
-message SMSRequest {
-  string number = 1;
-  string message = 2;
+message BounceRequest {
+  string from = 1;        // Correo del remitente
+  string to = 2;          // Correo del destinatario
+  string sent_time = 3;   // Hora de envío del correo (ISO 8601)
 }
 
-message SMSResponse {
-  string status = 1;
-}
-
-message LogRequest {
-  string log = 1;
-}
-
-message LogResponse {
-  string status = 1;
+message BounceResponse {
+  string status = 1;      // "failed", "completed", or "pending"
+  string reason = 2;      // Razón del fallo (si aplica)
 }

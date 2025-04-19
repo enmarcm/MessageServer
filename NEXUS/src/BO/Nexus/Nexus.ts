@@ -75,11 +75,6 @@ export default class Nexus {
         const item = this.que.shift();
         if (item && item.id) {
           await this.sendItem(item);
-          await ITSGooseHandler.editDocument({
-            Model: QueueItemModel,
-            id: item.id.toString(),
-            newData: { status: "COMPLETED" },
-          });
         }
       }
     } catch (error) {
@@ -110,6 +105,7 @@ export default class Nexus {
     let mailToUse: NexusDataType | null = null;
 
     try {
+      // Seleccionar el servidor y el correo
       serverToUse = await this.selectionHandler.selectServer(
         this.grpcClientsMap,
         "EMAIL"
@@ -123,10 +119,11 @@ export default class Nexus {
         body,
       };
 
+      // Enviar el correo
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
-          ?.bo.invokeMethod(contentMapped, (err, response) => {
+          ?.bo.invokeMethod("SendMail", contentMapped, (err, response) => {
             if (err) {
               logger.error(err);
               reject(err);
@@ -139,34 +136,49 @@ export default class Nexus {
 
       logger.log(`Sending email to ${to} with subject ${subject} and Body`);
 
-      console.log(mailToUse.content);
-
-      logHistory.logEmailActivity(
-        mailToUse.content as string,
+      // Verificar rebotes periódicamente
+      const bounceStatus = await this.verifyBounceStatus(
+        mailToUse.content.toString(),
         to,
-        subject,
-        "COMPLETED"
+        serverToUse
       );
 
+      if (bounceStatus === "failed") {
+        logHistory.logEmailActivity(
+          mailToUse.content as string,
+          to,
+          subject,
+          "ERROR"
+        );
+
+        await ITSGooseHandler.editDocument({
+          Model: QueueItemModel,
+          id: queueItemId,
+          newData: { from: mailToUse.content.toString(), status: "ERROR" },
+        });
+      } else {
+        logHistory.logEmailActivity(
+          mailToUse.content as string,
+          to,
+          subject,
+          "COMPLETED"
+        );
+
+        await ITSGooseHandler.editDocument({
+          Model: QueueItemModel,
+          id: queueItemId,
+          newData: { from: mailToUse.content.toString(), status: "COMPLETED" },
+        });
+      }
+    } catch (error) {
+      logger.error(`Error sending email: ${error}`);
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
         id: queueItemId,
-        newData: { from: mailToUse.content.toString(), status: "COMPLETED" },
-      }).then(() => {
-        logger.log(`Queue item ${queueItemId} updated to COMPLETED`);
-      }).catch((err) => {
-        logger.error(`Failed to update queue item ${queueItemId}: ${err}`);
+        newData: { status: "ERROR" },
       });
-    } catch (error) {
-      logger.error(`Error sending email: ${error}`);
-      logHistory.logEmailActivity(
-        mailToUse?.content?.toString() || "unknown",
-        to,
-        subject,
-        "ERROR"
-      );
-      this.addQue({ type: "EMAIL", content, status: "PENDING" });
     } finally {
+      // Asegurarse de marcar el servidor como "FREE" incluso si ocurre un error
       if (serverToUse) {
         this.markServerAsFree(serverToUse);
       }
@@ -175,6 +187,83 @@ export default class Nexus {
       }
     }
   };
+
+  private async verifyBounceStatus(
+    from: string,
+    to: string,
+    serverToUse: ServerDataType
+  ): Promise<string> {
+    const maxAttempts = 13; 
+    const interval = 1000; 
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const bounceStatus = await this.checkBounceStatus(from, to, serverToUse);
+
+        if (bounceStatus === "failed") {
+          logger.log(`Bounce detected for email to ${to} on attempt ${attempt}`);
+          return "failed"; // Detener la verificación si se detecta un rebote
+        } else if (bounceStatus === "completed") {
+          logger.log(`Email to ${to} completed successfully on attempt ${attempt}`);
+        }
+      } catch (error) {
+        logger.error(`Error checking bounce status on attempt ${attempt}: ${error}`);
+      }
+
+      // Esperar 1 segundo antes del siguiente intento
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+
+    logger.log(`No bounce detected for email to ${to} after ${maxAttempts} attempts`);
+    return "completed"; // Asumir completado si no se detecta rebote
+  }
+
+  private async checkBounceStatus(
+    from: string,
+    to: string,
+    serverToUse: ServerDataType
+  ): Promise<string> {
+    try {
+      const request = {
+        from,
+        to,
+        sent_time: new Date().toISOString(),
+      };
+
+      const bounceResponse = await new Promise<{ status: string; reason: string }>(
+        (resolve, reject) => {
+          this.grpcClientsMap
+            .get(serverToUse)
+            ?.bo.invokeMethod("CheckBounceStatus", request, (err, response) => {
+              if (err) {
+                logger.error(`Error checking bounce status: ${err}`);
+                reject(err);
+              } else {
+                resolve(response);
+              }
+            });
+        }
+      );
+
+      console.log("Bounce Response:", bounceResponse);
+
+      if (
+        bounceResponse.status === "failed" &&
+        (bounceResponse.reason.includes("mailer-daemon@googlemail.com") ||
+          bounceResponse.reason.includes("550 5.1.1") ||
+          bounceResponse.reason.includes("no se ha encontrado la dirección"))
+      ) {
+        return "failed";
+      } else if (bounceResponse.status === "completed") {
+        return "completed";
+      }
+
+      return "completed"; // Default to completed if no bounce detected
+    } catch (error) {
+      logger.error(`Error during bounce status check: ${error}`);
+      return "failed"; // Fallback to failed in case of error
+    }
+  }
 
   private markServerAsFree(server: ServerDataType): ServerDataType {
     const serverIndex = this.servers.findIndex((s) => s === server);
@@ -215,7 +304,7 @@ export default class Nexus {
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
-          ?.bo.invokeMethod(contentMapped, (err, response) => {
+          ?.bo.invokeMethod("SendSMS", contentMapped, (err, response) => {
             if (err) {
               logger.error(err);
               reject(err);
@@ -241,8 +330,11 @@ export default class Nexus {
       });
     } catch (error) {
       logger.error(`Error sending SMS: ${error}`);
-      logHistory.logSMSActivity(SMSNumber.mainNumber, to, body, "ERROR");
-      this.addQue({ type: "SMS", content, status: "PENDING" });
+      await ITSGooseHandler.editDocument({
+        Model: QueueItemModel,
+        id: queueItemId,
+        newData: { status: "ERROR" },
+      });
     } finally {
       if (serverToUse) {
         this.markServerAsFree(serverToUse);

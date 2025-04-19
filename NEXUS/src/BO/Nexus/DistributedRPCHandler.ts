@@ -33,27 +33,26 @@ export default class DistributedRPCHandler {
     const PATH_PROTO_MAIL = path.join(__dirname, "./protos/mail.proto");
     const PATH_PROTO_DATA = path.join(__dirname, "./protos/data.proto");
     const PATH_PROTO_SMS = path.join(__dirname, "./protos/sms.proto");
-
+  
     const GRPC_CLIENTS = new Map();
-
+  
     this.servers.forEach((server: ServerDataType) => {
       const TARGET = `${server.host}:${server.port}`;
-
+  
       const boClient = new GrpcClient({
-        protoPath: server.typeInfo === "EMAIL" ?  PATH_PROTO_MAIL : PATH_PROTO_SMS,
+        protoPath: server.typeInfo === "EMAIL" ? PATH_PROTO_MAIL : PATH_PROTO_SMS,
         packageName: this.getPackageName(server.typeInfo),
         serviceName: this.getServiceName(server.typeInfo),
-        methodName: this.getMethodName(server.typeInfo),
-        target: TARGET,
+        target: TARGET, 
       }).loadProto();
-
+  
       const dataClient = new GrpcClient(
         GetServerStatsValues({ protoPath: PATH_PROTO_DATA, target: TARGET })
       ).loadProto();
-
+  
       GRPC_CLIENTS.set(server, { bo: boClient, data: dataClient });
     });
-
+  
     this.grpcClientsMap = GRPC_CLIENTS;
   };
 
@@ -75,12 +74,4 @@ export default class DistributedRPCHandler {
   private getServiceName = (typeInfo: string): string =>
     typeInfo === "SMS" ? "SMSService" : "MailService";
 
-  /**
-   * Gets the method name based on the server type.
-   * @private
-   * @param {string} typeInfo - The type of the server (SMS or EMAIL).
-   * @returns {string} The method name.
-   */
-  private getMethodName = (typeInfo: string): string =>
-    typeInfo === "SMS" ? "SendSMS" : "SendMail";
 }

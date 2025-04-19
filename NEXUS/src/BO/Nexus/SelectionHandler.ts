@@ -83,36 +83,41 @@ export default class SelectionHandler {
     try {
       const serverResources = await Promise.all(
         Array.from(grpcClientsMap.entries()).map(async ([server, clients]) => {
+          // Filtrar servidores que no coincidan con el tipo de servicio
           if (server.typeInfo !== serviceType) {
             return { server, availableResources: 0 };
           }
+      
           try {
+            // Invocar el método GetServerStats para obtener estadísticas del servidor
             const response = await new Promise<any>((resolve, reject) => {
-              clients.data.invokeMethod({}, (err: Error | null, res: any) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve(res);
+              clients.data.invokeMethod(
+                "GetServerStats",
+                {}, // Enviar un objeto vacío si no se requieren datos adicionales
+                (err: Error | null, res: any) => {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve(res);
+                  }
                 }
-              });
+              );
             });
-
+      
+            // Parsear los valores de la respuesta
             const freeMemory = parseFloat(response.free_memory);
             const totalMemory = parseFloat(response.total_memory);
-            const diskUsagePercentage = parseFloat(
-              response.disk_usage.replace("%", "")
-            );
+            const diskUsagePercentage = parseFloat(response.disk_usage.replace("%", ""));
             const diskUsage = (diskUsagePercentage / 100) * totalMemory;
-
+      
+            // Calcular los recursos disponibles
             const availableResources = freeMemory + (totalMemory - diskUsage);
-
-            const dataToSend = { server, availableResources };
-
-            return dataToSend;
+      
+            // Retornar los datos del servidor y los recursos disponibles
+            return { server, availableResources };
           } catch (error) {
-            logger.error(
-              `Error getting resources for server ${server.name}: ${error}`
-            );
+            // Manejar errores al obtener estadísticas del servidor
+            logger.error(`Error getting resources for server ${server.name}: ${error}`);
             return { server, availableResources: 0 };
           }
         })
