@@ -5,6 +5,9 @@ import { Content, DataType, NexusQueType } from "../Nexus/NexusTypes";
 
 export default class NexusController {
   private sendToQue = async (type: DataType, content: Content) => {
+
+    console.log(content)
+    
     const item: NexusQueType = {
       type,
       content,
@@ -45,6 +48,7 @@ export default class NexusController {
   };
 
   static sendSMS = async (req: Request, res: Response) => {
+    console.log(req.body)
     const { to, body } = req.body || {};
 
     if (!to || !body) {

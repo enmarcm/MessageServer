@@ -23,7 +23,7 @@ export class QueueItem {
   @prop({ required: true, enum: ["SMS", "EMAIL"], type: String })
   public type!: "SMS" | "EMAIL";
 
-  @prop({ required: true, type: String })
+  @prop({ required: true, type: Object })
   public content!: any;
 
   @prop({

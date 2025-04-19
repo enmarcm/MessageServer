@@ -83,4 +83,17 @@ export default class Reports {
       return { success: [], failed: [] };
     }
   }
+
+  async obtailAllQueueItems(): Promise<any[]> {
+    try {
+      const allQueueItems = await ITSGooseHandler.searchAll({
+        Model: QueueItemModel,
+        condition: {},
+      });
+      return allQueueItems;
+    } catch (error) {
+      console.error(`Error obtaining all queue items: ${error}`);
+      return [];
+    }
+  }
 }

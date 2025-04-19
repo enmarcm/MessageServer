@@ -14,7 +14,7 @@ import { AuthRouter, MainRouter } from "./routers/allRouters";
 import { ApiRouter } from "./routers/ApiRouter";
 import { toProcessRouter } from "./routers/toProcessRouter";
 
-const app = express();
+export const app = express();
 
 //{ Middlewares
 app.use(express.json());
@@ -24,7 +24,7 @@ app.use(midCors());
 app.use(midNotJson);
 
 app.use("/", MainRouter);
-app.use("/login", AuthRouter)
+app.use("/auth", AuthRouter)
 
 /**
  * @example

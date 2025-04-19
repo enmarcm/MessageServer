@@ -6,7 +6,7 @@ from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
 from mimetypes import guess_type as guess_mime_type
 
-# Adds the attachment with the given filename to the given message
+#TODO: PROBAR BIEN CON LA API
 def add_attachment(message, filename):
     content_type, encoding = guess_mime_type(filename)
     if content_type is None or encoding is not None:

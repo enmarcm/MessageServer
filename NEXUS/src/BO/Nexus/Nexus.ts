@@ -13,12 +13,9 @@ import SelectionHandler from "./SelectionHandler";
 import DistributedRPCHandler from "./DistributedRPCHandler";
 import config from "../../config.json";
 import { QueueItemModel } from "../TGoose/models";
-import LogHistory from "../LogHistory/LogHistory";
 import { SMSNumber } from "../../constants";
+import { logHistory } from "../LogHistory/LogHistory";
 
-/**
- * Nexus class to handle email and SMS sending operations.
- */
 export default class Nexus {
   public que: NexusQueType[];
   public data: NexusDataType[];
@@ -26,17 +23,7 @@ export default class Nexus {
   public grpcClientsMap: Map<any, { bo: GrpcClient; data: GrpcClient }>;
   private selectionHandler: SelectionHandler;
   private rpcHandler: DistributedRPCHandler;
-  private logHistory: LogHistory;
 
-  /**
-   * Creates an instance of Nexus.
-   * @param {ConstructorNexusData} param0 - The data and servers to initialize the Nexus instance.
-   * @example
-   * const nexus = new Nexus({
-   *   data: [{ type: 'EMAIL', content: 'example@mail.com', status: 'INACTIVE', rest: 0, credentials: {} }],
-   *   servers: [{ name: 'Server1', host: 'localhost', port: 8080, status: 'ACTIVE', use: 'FREE', typeInfo: 'EMAIL' }]
-   * });
-   */
   constructor({ data, servers }: ConstructorNexusData) {
     this.que = [];
     this.data = data;
@@ -44,7 +31,6 @@ export default class Nexus {
     this.selectionHandler = new SelectionHandler(this.data, this.servers);
     this.rpcHandler = new DistributedRPCHandler(this.servers);
     this.grpcClientsMap = this.rpcHandler.grpcClientsMap;
-    this.logHistory = new LogHistory();
 
     setInterval(
       this.checkDatabaseForPendingItems,
@@ -52,10 +38,6 @@ export default class Nexus {
     );
   }
 
-  /**
-   * Adds an item to the queue and upload to DataBase.
-   * @param {NexusQueType} item - The item to add to the queue.
-   */
   public addQue = async (item: NexusQueType): Promise<void> => {
     await ITSGooseHandler.addDocument({
       Model: QueueItemModel,
@@ -63,10 +45,6 @@ export default class Nexus {
     });
   };
 
-  /**
-   * Checks the database for pending items and adds them to the queue.
-   * @private
-   */
   private checkDatabaseForPendingItems = async (): Promise<void> => {
     try {
       const pendingItems = await ITSGooseHandler.searchAll<NexusQueType>({
@@ -91,10 +69,6 @@ export default class Nexus {
     }
   };
 
-  /**
-   * Processes the queue by sending the first item.
-   * @private
-   */
   private processQueue = async (): Promise<void> => {
     try {
       if (this.que.length > 0) {
@@ -113,11 +87,6 @@ export default class Nexus {
     }
   };
 
-  /**
-   * Sends an item based on its type (EMAIL or SMS).
-   * @private
-   * @param {NexusQueType} item - The item to send.
-   */
   private async sendItem(item: NexusQueType): Promise<void> {
     const sendMethod = item.type === "EMAIL" ? "sendMail" : "sendSMS";
 
@@ -128,10 +97,6 @@ export default class Nexus {
     await (this as any)[sendMethod](content, item.id);
   }
 
-  /**
-   * Sends an email.
-   * @param {EmailContent} content - The email content.
-   */
   public sendMail = async (
     content: EmailContent,
     queueItemId: string
@@ -173,22 +138,28 @@ export default class Nexus {
       });
 
       logger.log(`Sending email to ${to} with subject ${subject} and Body`);
-      this.logHistory.logEmailActivity(
-        mailToUse.content.toString(),
+
+      console.log(mailToUse.content);
+
+      logHistory.logEmailActivity(
+        mailToUse.content as string,
         to,
         subject,
         "COMPLETED"
       );
 
-      // Actualizar el registro original en la cola
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
         id: queueItemId,
         newData: { from: mailToUse.content.toString(), status: "COMPLETED" },
+      }).then(() => {
+        logger.log(`Queue item ${queueItemId} updated to COMPLETED`);
+      }).catch((err) => {
+        logger.error(`Failed to update queue item ${queueItemId}: ${err}`);
       });
     } catch (error) {
       logger.error(`Error sending email: ${error}`);
-      this.logHistory.logEmailActivity(
+      logHistory.logEmailActivity(
         mailToUse?.content?.toString() || "unknown",
         to,
         subject,
@@ -205,12 +176,6 @@ export default class Nexus {
     }
   };
 
-  /**
-   * Marks a server as free.
-   * @private
-   * @param {ServerDataType} server - The server to mark as free.
-   * @returns {ServerDataType} The server marked as free.
-   */
   private markServerAsFree(server: ServerDataType): ServerDataType {
     const serverIndex = this.servers.findIndex((s) => s === server);
 
@@ -219,32 +184,17 @@ export default class Nexus {
     return server;
   }
 
-  /**
-   * Marks an email as active.
-   * @private
-   * @param {NexusDataType} mailToUse - The email to mark as active.
-   */
   private markMailAsActive(mailToUse: NexusDataType): void {
     const mailIndex = this.data.findIndex((m) => m === mailToUse);
 
     if (mailIndex !== -1) this.data[mailIndex].status = "ACTIVE";
   }
 
-  /**
-   * Validates an email address.
-   * @private
-   * @param {string} email - The email address to validate.
-   * @returns {boolean} True if the email is valid, false otherwise.
-   */
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  /**
-   * Sends an SMS.
-   * @param {SMSContent} content - The SMS content.
-   */
   public sendSMS = async (
     content: SMSContent,
     queueItemId: string
@@ -260,7 +210,7 @@ export default class Nexus {
         "SMS"
       );
 
-      const contentMapped = { to, body };
+      const contentMapped = { to, message: body };
 
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
@@ -277,14 +227,13 @@ export default class Nexus {
       });
 
       logger.log(`Sending SMS to ${to} with message ${body}`);
-      this.logHistory.logSMSActivity(
+      logHistory.logSMSActivity(
         SMSNumber.mainNumber,
         to,
         body,
         "COMPLETED"
       );
 
-      // Actualizar el registro original en la cola
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
         id: queueItemId,
@@ -292,7 +241,7 @@ export default class Nexus {
       });
     } catch (error) {
       logger.error(`Error sending SMS: ${error}`);
-      this.logHistory.logSMSActivity(SMSNumber.mainNumber, to, body, "ERROR");
+      logHistory.logSMSActivity(SMSNumber.mainNumber, to, body, "ERROR");
       this.addQue({ type: "SMS", content, status: "PENDING" });
     } finally {
       if (serverToUse) {
@@ -300,27 +249,4 @@ export default class Nexus {
       }
     }
   };
-
-  /**
-   * Sends logs.
-   */
-  public sendLogs = (): void => {
-    // Implementar lógica para enviar logs
-  };
-
-  /**
-   * Selects a number.
-   * @private
-   */
-  //@ts-ignore
-  private selectNumber = (): void => {
-    // Implementar lógica para seleccionar números
-  };
-
-  // private configMail = (): void => {};
-  // private configSMS = (): void => {};
-  // private verifyStatus = (): void => {};
-  // private verifyServers = (): void => {};
-  // private verifySMS = (): void => {};
-  // private verifyMail = (): void => {};
 }

@@ -4,20 +4,41 @@ import { ITSGooseHandler } from "../../data/instances";
 import { LogType } from "../../enums";
 import WebSocket from "ws";
 
-export default class LogHistory {
+class LogHistory {
+  private static instance: LogHistory | null = null;
   private LogModel = LogModel;
-  private wsServer: WebSocket.Server;
+  private wsServer: WebSocket.Server | null = null;
 
-  constructor() {
-    this.wsServer = new WebSocket.Server({ port: 8080 });
+  private constructor() {
+    this.initializeWebSocketServer();
   }
 
-  /**
-   * Method to log data to the database.
-   * @param {string} message - The log message.
-   * @param {LogType} type - The type of log.
-   * @private
-   */
+  private initializeWebSocketServer(): void {
+    try {
+      if (!this.wsServer) {
+        this.wsServer = new WebSocket.Server({ port: 8085 });
+        console.log("WebSocket server started on port 8085");
+
+        this.wsServer.on("connection", (_socket) => {
+          console.log("New WebSocket client connected");
+        });
+
+        this.wsServer.on("error", (error) => {
+          console.error("WebSocket server error:", error.message);
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to start WebSocket server:", error.message);
+    }
+  }
+
+  public static getInstance(): LogHistory {
+    if (!LogHistory.instance) {
+      LogHistory.instance = new LogHistory();
+    }
+    return LogHistory.instance;
+  }
+
   private async logMessage(message: string, type: LogType): Promise<void> {
     try {
       const logEntry = new this.LogModel({ message, type });
@@ -26,15 +47,12 @@ export default class LogHistory {
         data: logEntry,
       });
       console.log(`Log saved: ${message} [${type}]`);
+      this.emitLog(logEntry);
     } catch (error) {
       console.error("Error saving log:", error);
     }
   }
 
-  /**
-   * Method to log a general message.
-   * @param {string} message - The log message.
-   */
   public log(message: string | object): void {
     this.logMessage(
       typeof message === "string" ? message : JSON.stringify(message),
@@ -42,10 +60,6 @@ export default class LogHistory {
     );
   }
 
-  /**
-   * Method to log a warning message.
-   * @param {string} message - The warning message.
-   */
   public warn(message: string | object): void {
     this.logMessage(
       typeof message === "string" ? message : JSON.stringify(message),
@@ -53,10 +67,6 @@ export default class LogHistory {
     );
   }
 
-  /**
-   * Method to log an error message.
-   * @param {string | Error} error - The error message or object.
-   */
   public error(error: string | Error): void {
     const message =
       error instanceof Error
@@ -67,10 +77,6 @@ export default class LogHistory {
     this.logMessage(message, LogType.ERROR);
   }
 
-  /**
-   * Method to get all logs in JSON format.
-   * @returns {Promise<Array<{ type: LogType, message: string }>>} - A promise that resolves to an array of logs.
-   */
   public async getAllLogs(): Promise<
     Array<{ type: LogType; message: string }>
   > {
@@ -90,42 +96,39 @@ export default class LogHistory {
     }
   }
 
-  /**
-   * Method to log email activity.
-   * @param {string} from - The sender email address.
-   * @param {string} to - The recipient email address.
-   * @param {string} subject - The email subject.
-   * @param {string} status - The status of the email (PROCESSING, COMPLETED, ERROR).
-   */
-  public logEmailActivity(from: string, to: string, subject: string, status: string): void {
+  public logEmailActivity(
+    from: string,
+    to: string,
+    subject: string,
+    status: string
+  ): void {
     const message = `Email from ${from} to ${to} with subject "${subject}" is ${status}`;
     this.logMessage(message, LogType.LOG);
     this.emitLog({ type: "EMAIL", from, to, subject, status });
   }
 
-  /**
-   * Method to log SMS activity.
-   * @param {string} from - The sender identifier.
-   * @param {string} to - The recipient phone number.
-   * @param {string} body - The SMS body.
-   * @param {string} status - The status of the SMS (PROCESSING, COMPLETED, ERROR).
-   */
-  public logSMSActivity(from: string, to: string, body: string, status: string): void {
+  public logSMSActivity(
+    from: string,
+    to: string,
+    body: string,
+    status: string
+  ): void {
     const message = `SMS from ${from} to ${to} with body "${body}" is ${status}`;
     this.logMessage(message, LogType.LOG);
     this.emitLog({ type: "SMS", from, to, body, status });
   }
 
-  /**
-   * Method to emit log messages via WebSocket.
-   * @param {object} log - The log message object.
-   * @private
-   */
   private emitLog(log: object): void {
-    this.wsServer.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(log));
-      }
-    });
+    if (this.wsServer) {
+      this.wsServer.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(log));
+        }
+      });
+    } else {
+      console.error("WebSocket server is not initialized");
+    }
   }
 }
+
+export const logHistory = LogHistory.getInstance();

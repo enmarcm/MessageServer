@@ -31,7 +31,7 @@ class ToProcessController {
         method,
       });
 
-    
+
       if (permiso) {
         const resultMethod = await iSecurity.executeMethod({
           object,

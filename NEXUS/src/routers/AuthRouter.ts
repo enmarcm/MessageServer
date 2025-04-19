@@ -3,4 +3,4 @@ import AuthController from "../BO/controllers/AuthController";
 
 export const AuthRouter = Router();
 
-AuthRouter.post("", AuthController.login);
+AuthRouter.post("/login", AuthController.login);
