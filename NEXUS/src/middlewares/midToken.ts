@@ -18,6 +18,9 @@ export default async function midToken(
   try {
     const { authorization } = req.headers;
 
+    console.log("Authorization Header:", authorization);
+    console.log("Request Body:", req.body);
+
     if (!authorization && !authorization?.toLowerCase().startsWith("bearer")) {
       return res.status(401).json({ message: "Token not found" });
     }
@@ -41,6 +44,8 @@ export default async function midToken(
     req.idUser = user.id_user;
     req.email = user.em_user;
     req.profile = user.de_profile;
+
+    console.log(req.body)
 
     return next();
   } catch (error) {

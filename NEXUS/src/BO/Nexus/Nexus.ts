@@ -23,6 +23,9 @@ export default class Nexus {
   public grpcClientsMap: Map<any, { bo: GrpcClient; data: GrpcClient }>;
   private selectionHandler: SelectionHandler;
   private rpcHandler: DistributedRPCHandler;
+  private isProcessing: boolean;
+  private bounceQueue: { from: string; to: string; server: ServerDataType; queueItemId: string }[];
+  private isProcessingBounces: boolean;
 
   constructor({ data, servers }: ConstructorNexusData) {
     this.que = [];
@@ -31,6 +34,9 @@ export default class Nexus {
     this.selectionHandler = new SelectionHandler(this.data, this.servers);
     this.rpcHandler = new DistributedRPCHandler(this.servers);
     this.grpcClientsMap = this.rpcHandler.grpcClientsMap;
+    this.isProcessing = false;
+    this.bounceQueue = [];
+    this.isProcessingBounces = false;
 
     setInterval(
       this.checkDatabaseForPendingItems,
@@ -55,7 +61,10 @@ export default class Nexus {
       for (const item of pendingItems) {
         this.que.push(item);
 
-        if (!item?.id) return logger.error("Item without id");
+        if (!item?.id) {
+          logger.error("Item without id");
+          continue;
+        }
 
         await ITSGooseHandler.editDocument({
           Model: QueueItemModel,
@@ -63,6 +72,7 @@ export default class Nexus {
           newData: { status: "PROCESSING" },
         });
       }
+
       this.processQueue();
     } catch (error) {
       logger.error(`Error checking database for pending items: ${error}`);
@@ -70,8 +80,11 @@ export default class Nexus {
   };
 
   private processQueue = async (): Promise<void> => {
+    if (this.isProcessing) return; // Evitar múltiples ejecuciones simultáneas
+    this.isProcessing = true;
+
     try {
-      if (this.que.length > 0) {
+      while (this.que.length > 0) {
         const item = this.que.shift();
         if (item && item.id) {
           await this.sendItem(item);
@@ -79,6 +92,13 @@ export default class Nexus {
       }
     } catch (error) {
       logger.error(`Error processing queue: ${error}`);
+    } finally {
+      this.isProcessing = false;
+
+      // Si no hay más elementos en la cola principal, procesar los rebotes
+      if (this.bounceQueue.length > 0) {
+        this.processBounceQueue();
+      }
     }
   };
 
@@ -105,7 +125,6 @@ export default class Nexus {
     let mailToUse: NexusDataType | null = null;
 
     try {
-      // Seleccionar el servidor y el correo
       serverToUse = await this.selectionHandler.selectServer(
         this.grpcClientsMap,
         "EMAIL"
@@ -119,7 +138,6 @@ export default class Nexus {
         body,
       };
 
-      // Enviar el correo
       await new Promise<void>((resolve, reject) => {
         this.grpcClientsMap
           .get(serverToUse)
@@ -136,40 +154,34 @@ export default class Nexus {
 
       logger.log(`Sending email to ${to} with subject ${subject} and Body`);
 
-      // Verificar rebotes periódicamente
-      const bounceStatus = await this.verifyBounceStatus(
-        mailToUse.content.toString(),
+      // Agregar a la cola de rebotes para verificar después de 10 segundos
+      setTimeout(() => {
+
+        if(mailToUse === null || serverToUse === null) return;
+
+        this.bounceQueue.push({
+          from: mailToUse.content.toString(),
+          to,
+          server: serverToUse,
+          queueItemId,
+        });
+        if (!this.isProcessing) {
+          this.processBounceQueue();
+        }
+      }, 10000);
+
+      logHistory.logEmailActivity(
+        mailToUse.content as string,
         to,
-        serverToUse
+        subject,
+        "PROCESSING"
       );
 
-      if (bounceStatus === "failed") {
-        logHistory.logEmailActivity(
-          mailToUse.content as string,
-          to,
-          subject,
-          "ERROR"
-        );
-
-        await ITSGooseHandler.editDocument({
-          Model: QueueItemModel,
-          id: queueItemId,
-          newData: { from: mailToUse.content.toString(), status: "ERROR" },
-        });
-      } else {
-        logHistory.logEmailActivity(
-          mailToUse.content as string,
-          to,
-          subject,
-          "COMPLETED"
-        );
-
-        await ITSGooseHandler.editDocument({
-          Model: QueueItemModel,
-          id: queueItemId,
-          newData: { from: mailToUse.content.toString(), status: "COMPLETED" },
-        });
-      }
+      await ITSGooseHandler.editDocument({
+        Model: QueueItemModel,
+        id: queueItemId,
+        newData: { from: mailToUse.content.toString(), status: "PROCESSING" },
+      });
     } catch (error) {
       logger.error(`Error sending email: ${error}`);
       await ITSGooseHandler.editDocument({
@@ -178,7 +190,6 @@ export default class Nexus {
         newData: { status: "ERROR" },
       });
     } finally {
-      // Asegurarse de marcar el servidor como "FREE" incluso si ocurre un error
       if (serverToUse) {
         this.markServerAsFree(serverToUse);
       }
@@ -188,37 +199,61 @@ export default class Nexus {
     }
   };
 
-  private async verifyBounceStatus(
-    from: string,
-    to: string,
-    serverToUse: ServerDataType
-  ): Promise<string> {
-    const maxAttempts = 13; 
-    const interval = 1000; 
+  private processBounceQueue = async (): Promise<void> => {
+    if (this.isProcessing || this.isProcessingBounces) return; // Priorizar la cola principal
+    if (this.bounceQueue.length === 0) return;
+  
+    this.isProcessingBounces = true;
+  
+    try {
+      while (this.bounceQueue.length > 0) {
+        const bounceItem = this.bounceQueue.shift();
+        if (bounceItem) {
+          const { from, to, server, queueItemId } = bounceItem;
+          const bounceStatus = await this.verifyBounceStatus(from, to, server);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const bounceStatus = await this.checkBounceStatus(from, to, serverToUse);
-
-        if (bounceStatus === "failed") {
-          logger.log(`Bounce detected for email to ${to} on attempt ${attempt}`);
-          return "failed"; // Detener la verificación si se detecta un rebote
-        } else if (bounceStatus === "completed") {
-          logger.log(`Email to ${to} completed successfully on attempt ${attempt}`);
+          // Verificar el estado actual en la base de datos antes de actualizar
+          const currentItem = await ITSGooseHandler.searchOne<NexusQueType>({
+            Model: QueueItemModel,
+            //@ts-ignore
+            condition: { _id: queueItemId } //TODO: Modificar,
+          });
+  
+          if (!currentItem) {
+            logger.error(`Queue item with ID ${queueItemId} not found.`);
+            continue;
+          }
+  
+          if (currentItem.status === "ERROR") {
+            logger.log(`Queue item ${queueItemId} is already marked as ERROR. Skipping update.`);
+            continue; // No actualizar si ya está en estado ERROR
+          }
+  
+          if (bounceStatus === "failed") {
+            logger.log(`Bounce detected for email to ${to}`);
+            await ITSGooseHandler.editDocument({
+              Model: QueueItemModel,
+              id: queueItemId,
+              newData: { status: "ERROR" },
+            });
+          } else if (bounceStatus === "completed") {
+            logger.log(`Email to ${to} completed successfully`);
+            await ITSGooseHandler.editDocument({
+              Model: QueueItemModel,
+              id: queueItemId,
+              newData: { status: "COMPLETED" },
+            });
+          }
         }
-      } catch (error) {
-        logger.error(`Error checking bounce status on attempt ${attempt}: ${error}`);
       }
-
-      // Esperar 1 segundo antes del siguiente intento
-      await new Promise((resolve) => setTimeout(resolve, interval));
+    } catch (error) {
+      logger.error(`Error processing bounce queue: ${error}`);
+    } finally {
+      this.isProcessingBounces = false;
     }
+  };
 
-    logger.log(`No bounce detected for email to ${to} after ${maxAttempts} attempts`);
-    return "completed"; // Asumir completado si no se detecta rebote
-  }
-
-  private async checkBounceStatus(
+  private async verifyBounceStatus(
     from: string,
     to: string,
     serverToUse: ServerDataType
@@ -230,38 +265,29 @@ export default class Nexus {
         sent_time: new Date().toISOString(),
       };
 
-      const bounceResponse = await new Promise<{ status: string; reason: string }>(
-        (resolve, reject) => {
-          this.grpcClientsMap
-            .get(serverToUse)
-            ?.bo.invokeMethod("CheckBounceStatus", request, (err, response) => {
-              if (err) {
-                logger.error(`Error checking bounce status: ${err}`);
-                reject(err);
-              } else {
-                resolve(response);
-              }
-            });
-        }
-      );
+      const bounceResponse = await new Promise<{
+        status: string;
+        reason: string;
+      }>((resolve, reject) => {
+        this.grpcClientsMap
+          .get(serverToUse)
+          ?.bo.invokeMethod("CheckBounceStatus", request, (err, response) => {
+            if (err) {
+              logger.error(`Error checking bounce status: ${err}`);
+              reject(err);
+            } else {
+              resolve(response);
+            }
+          });
+      });
 
       console.log("Bounce Response:", bounceResponse);
 
-      if (
-        bounceResponse.status === "failed" &&
-        (bounceResponse.reason.includes("mailer-daemon@googlemail.com") ||
-          bounceResponse.reason.includes("550 5.1.1") ||
-          bounceResponse.reason.includes("no se ha encontrado la dirección"))
-      ) {
-        return "failed";
-      } else if (bounceResponse.status === "completed") {
-        return "completed";
-      }
-
-      return "completed"; // Default to completed if no bounce detected
+      return bounceResponse.status;
+      
     } catch (error) {
       logger.error(`Error during bounce status check: ${error}`);
-      return "failed"; // Fallback to failed in case of error
+      return "failed";
     }
   }
 
