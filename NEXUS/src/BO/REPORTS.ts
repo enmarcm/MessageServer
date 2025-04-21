@@ -1,5 +1,5 @@
-import { ITSGooseHandler } from "../data/instances";
-import { QueueItemModel } from "./TGoose/models";
+import { iPgHandler, ITSGooseHandler } from "../data/instances";
+import { DataModel, QueueItemModel } from "./TGoose/models";
 
 export default class Reports {
   /**
@@ -28,6 +28,7 @@ export default class Reports {
       const email_sends = await ITSGooseHandler.searchAll({
         Model: QueueItemModel,
         condition: { type: "EMAIL" },
+        limit: 10000, // Ajustar límite
       });
       return email_sends;
     } catch (error) {
@@ -96,66 +97,72 @@ export default class Reports {
       return [];
     }
   }
+/**
+ * Obtiene los correos enviados por día.
+ * @returns {Promise<{ time: string; value: number }[]>} Lista de correos enviados por día.
+ */
+async get_emails_sent_by_day(): Promise<{ time: string; value: number }[]> {
+  try {
+    const emails = await ITSGooseHandler.searchAll({
+      Model: QueueItemModel,
+      condition: { type: "EMAIL", status: "COMPLETED" },
+      limit: 10000, // Ajustar límite
+    });
 
-  /**
-   * Obtiene los correos enviados por día.
-   * @returns {Promise<{ time: string, value: number }[]>} Lista de correos enviados por día.
-   */
-  async get_emails_sent_by_day(): Promise<{ time: string; value: number }[]> {
-    try {
-      const emails = await ITSGooseHandler.searchAll({
-        Model: QueueItemModel,
-        condition: { type: "EMAIL", status: "COMPLETED" },
-      });
+    const grouped_by_day: Record<string, number> = emails.reduce(
+      (acc: Record<string, number>, email: any) => {
+        const date = new Date(email.createdAt); // Convertir a objeto Date
+        const formattedDate = date.toISOString().split("T")[0]; // Extraer solo la fecha en formato YYYY-MM-DD
+        acc[formattedDate] = (acc[formattedDate] || 0) + 1; // Incrementar el contador por fecha
+        return acc;
+      },
+      {}
+    );
 
-      const grouped_by_day: Record<string, number> = emails.reduce(
-        (acc: Record<string, number>, email: any) => {
-          const date = new Date(email.createdAt).toISOString().split("T")[0];
-          acc[date] = (acc[date] || 0) + 1;
-          return acc;
-        },
-        {}
-      );
-
-      return Object.entries(grouped_by_day).map(([time, value]) => ({
-        time,
-        value,
-      }));
-    } catch (error) {
-      console.error(`Error getting emails sent by day: ${error}`);
-      return [];
-    }
+    // Convertir el objeto agrupado en un arreglo con el formato solicitado
+    return Object.entries(grouped_by_day).map(([time, value]) => ({
+      time,
+      value,
+    }));
+  } catch (error) {
+    console.error(`Error getting emails sent by day: ${error}`);
+    return [];
   }
+}
 
-  /**
-   * Obtiene los mensajes enviados por día.
-   * @returns {Promise<{ time: string, value: number }[]>} Lista de mensajes enviados por día.
-   */
-  async get_sms_sent_by_day(): Promise<{ time: string; value: number }[]> {
-    try {
-      const sms = await ITSGooseHandler.searchAll({
-        Model: QueueItemModel,
-        condition: { type: "SMS", status: "COMPLETED" },
-      });
+/**
+ * Obtiene los mensajes enviados por día.
+ * @returns {Promise<{ time: string; value: number }[]>} Lista de mensajes enviados por día.
+ */
+async get_sms_sent_by_day(): Promise<{ time: string; value: number }[]> {
+  try {
+    const sms = await ITSGooseHandler.searchAll({
+      Model: QueueItemModel,
+      condition: { type: "SMS", status: "COMPLETED" },
+      limit: 10000, // Ajustar límite
+    });
 
-      const grouped_by_day: Record<string, number> = sms.reduce(
-        (acc: Record<string, number>, message: any) => {
-          const date = new Date(message.createdAt).toISOString().split("T")[0];
-          acc[date] = (acc[date] || 0) + 1;
-          return acc;
-        },
-        {}
-      );
+    const grouped_by_day: Record<string, number> = sms.reduce(
+      (acc: Record<string, number>, message: any) => {
+        const date = new Date(message.createdAt); // Convertir a objeto Date
+        const formattedDate = date.toISOString().split("T")[0]; // Extraer solo la fecha en formato YYYY-MM-DD
+        acc[formattedDate] = (acc[formattedDate] || 0) + 1; // Incrementar el contador por fecha
+        return acc;
+      },
+      {}
+    );
 
-      return Object.entries(grouped_by_day).map(([time, value]) => ({
-        time,
-        value,
-      }));
-    } catch (error) {
-      console.error(`Error getting SMS sent by day: ${error}`);
-      return [];
-    }
+    // Convertir el objeto agrupado en un arreglo con el formato solicitado
+    return Object.entries(grouped_by_day).map(([time, value]) => ({
+      time,
+      value,
+    }));
+  } catch (error) {
+    console.error(`Error getting SMS sent by day: ${error}`);
+    return [];
   }
+}
+
 
   /**
    * Obtiene los correos exitosos y fallidos.
@@ -210,6 +217,78 @@ export default class Reports {
     } catch (error) {
       console.error(`Error getting SMS success and failed: ${error}`);
       return [];
+    }
+  }
+
+  async get_data_for_cards_dashboard({id_user}: { id_user: number }) {
+    try {
+      // Consulta en MongoDB para obtener SMS y EMAIL
+      const smsData = await ITSGooseHandler.searchAll({
+        Model: DataModel,
+        condition: { type: "SMS" },
+      });
+
+      const emailData = await ITSGooseHandler.searchAll({
+        Model: DataModel,
+        condition: { type: "EMAIL" },
+      });
+
+      // Formatear los datos de MongoDB
+      const SMS = smsData.map((item: any) => ({
+        name: item.name,
+        rest: item.rest || null, // Manejar rest como opcional
+      }));
+
+      const EMAIL = emailData.map((item: any) => ({
+        name: item.name,
+        rest: item.rest || null, // Manejar rest como opcional
+      }));
+
+      const templatesResult = await iPgHandler.executeQuery({
+        key: "obtainTemplates",
+        params: [id_user],
+      });
+
+      const groupsResult = await iPgHandler.executeQuery({
+        key: "obtainAllGroup"
+      });
+
+      if (!Array.isArray(templatesResult)) {
+        throw new Error(
+          `Unexpected response structure: ${JSON.stringify(templatesResult)}`
+        );
+      }
+
+      if (!Array.isArray(groupsResult)) {
+        throw new Error(
+          `Unexpected response structure: ${JSON.stringify(groupsResult)}`
+        );
+      }
+
+      // Formatear los datos de PostgreSQL
+      const TEMPLATES = templatesResult.map((template: any) => ({
+        id: template.id_template,
+        name: template.name,
+        type: template.type,
+      }));
+
+      const GROUPS = groupsResult.map((group: any) => ({
+        id: group.id_group,
+        name: group.de_group,
+        members: group.total_saved,
+        type: group.de_type,
+      }));
+
+      // Estructura final de la respuesta
+      return {
+        SMS,
+        EMAIL,
+        TEMPLATES,
+        GROUPS,
+      };
+    } catch (error) {
+      console.error(`Error getting data for dashboard cards: ${error}`);
+      throw error;
     }
   }
 }

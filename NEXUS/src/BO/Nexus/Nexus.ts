@@ -58,6 +58,8 @@ export default class Nexus {
         condition: { status: "PENDING" },
       });
 
+      console.log("Pending items from DB:", pendingItems);
+
       for (const item of pendingItems) {
         this.que.push(item);
 
@@ -131,6 +133,16 @@ export default class Nexus {
       );
       mailToUse = await this.selectionHandler.selectMail();
 
+      if (!serverToUse || !mailToUse) {
+        logger.log("No servers or mails available, marking as PENDING.");
+        await ITSGooseHandler.editDocument({
+          Model: QueueItemModel,
+          id: queueItemId,
+          newData: { status: "PENDING" },
+        });
+        return;
+      }
+
       const contentMapped = {
         from: mailToUse.content.toString(),
         to,
@@ -156,8 +168,7 @@ export default class Nexus {
 
       // Agregar a la cola de rebotes para verificar después de 10 segundos
       setTimeout(() => {
-
-        if(mailToUse === null || serverToUse === null) return;
+        if (mailToUse === null || serverToUse === null) return;
 
         this.bounceQueue.push({
           from: mailToUse.content.toString(),
@@ -187,7 +198,7 @@ export default class Nexus {
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
         id: queueItemId,
-        newData: { status: "ERROR" },
+        newData: { status: "PENDING" }, // Mantener como PENDING
       });
     } finally {
       if (serverToUse) {
@@ -199,12 +210,80 @@ export default class Nexus {
     }
   };
 
+  public sendSMS = async (
+    content: SMSContent,
+    queueItemId: string
+  ): Promise<void> => {
+    const { to, body } = content;
+    if (!to || !body) return;
+
+    let serverToUse: ServerDataType | null = null;
+
+    try {
+      serverToUse = await this.selectionHandler.selectServer(
+        this.grpcClientsMap,
+        "SMS"
+      );
+
+      if (!serverToUse) {
+        logger.log("No servers available for SMS, marking as PENDING.");
+        await ITSGooseHandler.editDocument({
+          Model: QueueItemModel,
+          id: queueItemId,
+          newData: { status: "PENDING" },
+        });
+        return;
+      }
+
+      const contentMapped = { to, message: body };
+
+      await new Promise<void>((resolve, reject) => {
+        this.grpcClientsMap
+          .get(serverToUse)
+          ?.bo.invokeMethod("SendSMS", contentMapped, (err, response) => {
+            if (err) {
+              logger.error(err);
+              reject(err);
+            } else {
+              logger.log(`SMS sent: ${JSON.stringify(response)}`);
+              resolve();
+            }
+          });
+      });
+
+      logger.log(`Sending SMS to ${to} with message ${body}`);
+      logHistory.logSMSActivity(
+        SMSNumber.mainNumber,
+        to,
+        body,
+        "COMPLETED"
+      );
+
+      await ITSGooseHandler.editDocument({
+        Model: QueueItemModel,
+        id: queueItemId,
+        newData: { from: SMSNumber.mainNumber, status: "COMPLETED" },
+      });
+    } catch (error) {
+      logger.error(`Error sending SMS: ${error}`);
+      await ITSGooseHandler.editDocument({
+        Model: QueueItemModel,
+        id: queueItemId,
+        newData: { status: "PENDING" }, // Mantener como PENDING
+      });
+    } finally {
+      if (serverToUse) {
+        this.markServerAsFree(serverToUse);
+      }
+    }
+  };
+
   private processBounceQueue = async (): Promise<void> => {
     if (this.isProcessing || this.isProcessingBounces) return; // Priorizar la cola principal
     if (this.bounceQueue.length === 0) return;
-  
+
     this.isProcessingBounces = true;
-  
+
     try {
       while (this.bounceQueue.length > 0) {
         const bounceItem = this.bounceQueue.shift();
@@ -218,17 +297,17 @@ export default class Nexus {
             //@ts-ignore
             condition: { _id: queueItemId } //TODO: Modificar,
           });
-  
+
           if (!currentItem) {
             logger.error(`Queue item with ID ${queueItemId} not found.`);
             continue;
           }
-  
+
           if (currentItem.status === "ERROR") {
             logger.log(`Queue item ${queueItemId} is already marked as ERROR. Skipping update.`);
             continue; // No actualizar si ya está en estado ERROR
           }
-  
+
           if (bounceStatus === "failed") {
             logger.log(`Bounce detected for email to ${to}`);
             await ITSGooseHandler.editDocument({
@@ -284,7 +363,7 @@ export default class Nexus {
       console.log("Bounce Response:", bounceResponse);
 
       return bounceResponse.status;
-      
+
     } catch (error) {
       logger.error(`Error during bounce status check: ${error}`);
       return "failed";
@@ -309,62 +388,4 @@ export default class Nexus {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
-
-  public sendSMS = async (
-    content: SMSContent,
-    queueItemId: string
-  ): Promise<void> => {
-    const { to, body } = content;
-    if (!to || !body) return;
-
-    let serverToUse: ServerDataType | null = null;
-
-    try {
-      serverToUse = await this.selectionHandler.selectServer(
-        this.grpcClientsMap,
-        "SMS"
-      );
-
-      const contentMapped = { to, message: body };
-
-      await new Promise<void>((resolve, reject) => {
-        this.grpcClientsMap
-          .get(serverToUse)
-          ?.bo.invokeMethod("SendSMS", contentMapped, (err, response) => {
-            if (err) {
-              logger.error(err);
-              reject(err);
-            } else {
-              logger.log(`SMS sent: ${JSON.stringify(response)}`);
-              resolve();
-            }
-          });
-      });
-
-      logger.log(`Sending SMS to ${to} with message ${body}`);
-      logHistory.logSMSActivity(
-        SMSNumber.mainNumber,
-        to,
-        body,
-        "COMPLETED"
-      );
-
-      await ITSGooseHandler.editDocument({
-        Model: QueueItemModel,
-        id: queueItemId,
-        newData: { from: SMSNumber.mainNumber, status: "COMPLETED" },
-      });
-    } catch (error) {
-      logger.error(`Error sending SMS: ${error}`);
-      await ITSGooseHandler.editDocument({
-        Model: QueueItemModel,
-        id: queueItemId,
-        newData: { status: "ERROR" },
-      });
-    } finally {
-      if (serverToUse) {
-        this.markServerAsFree(serverToUse);
-      }
-    }
-  };
 }
