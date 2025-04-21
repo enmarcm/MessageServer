@@ -12,5 +12,6 @@
  "savetoGroup": "INSERT INTO configuration.group_saved (id_group, id_saved) VALUES ($1, $2)",
  "checkData": "SELECT id_saved FROM configuration.saved WHERE co_saved = $1",
  "obtainAllGroup": "SELECT g.id_group, g.de_group, COUNT(gs.id_saved) AS total_saved, t.de_type FROM configuration.group g INNER JOIN configuration.group_saved gs ON g.id_group = gs.id_group INNER JOIN configuration.type t ON t.id_type = g.id_type GROUP BY g.id_group, g.de_group, t.de_type;",
- "deleteGroup": "WITH deleted_saves AS (DELETE FROM configuration.group_saved WHERE id_group = $1) DELETE FROM configuration.group WHERE id_group = $1"
+ "deleteGroup": "WITH deleted_saves AS (DELETE FROM configuration.group_saved WHERE id_group = $1) DELETE FROM configuration.group WHERE id_group = $1",
+ "obtainMembersGroup": "SELECT s.co_saved content FROM configuration.group_saved gs INNER JOIN configuration.saved s ON gs.id_saved = s.id_saved WHERE gs.id_group = $1"
 }
