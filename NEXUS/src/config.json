@@ -42,13 +42,13 @@
     }
   },
   "database": {
-    "host": "localhost",
-    "database": "nexus",
-    "user": "postgres",
-    "password": "1234",
+    "host": "dpg-d02m15re5dus73bul97g-a.oregon-postgres.render.com",
+    "database": "nexus_cx0w",
+    "user": "admin",
+    "password": "v0OlZ8kTGQdomE1ma0e2YzRqkgdNZZIl",
     "port": 5432,
-    "ssl": false,
-    "max": 31,
+    "ssl": true,
+    "max": 40,
     "idleTimeoutMillis": 1000,
     "maxUses": 7500
   }

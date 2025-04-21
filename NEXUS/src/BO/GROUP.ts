@@ -121,4 +121,46 @@ export default class Group {
             throw error;
         }
     }
+
+    static async obtain_all_group(){
+        try {
+            const result = await iPgHandler.executeQuery({
+                key: "obtainAllGroup",
+                params: []
+            });
+
+            console.log(result)
+    
+            if (!Array.isArray(result)) {
+                throw new Error(`Unexpected response structure: ${JSON.stringify(result)}`);
+            }
+    
+            return result;
+        } catch (error) {
+            console.error(`Error obtaining all groups: ${error}`);
+            throw error;
+        }
+    }
+
+    static async delete_group({
+        id_group
+    }: {
+        id_group: number;
+    }) {
+        try {
+            const result = await iPgHandler.executeQuery({
+                key: "deleteGroup",
+                params: [id_group]
+            });
+    
+            if (!Array.isArray(result)) {
+                throw new Error(`Unexpected response structure: ${JSON.stringify(result)}`);
+            }
+    
+            return { success: true, message: "Group deleted successfully" };
+        } catch (error) {
+            console.error(`Error deleting group: ${error}`);
+            throw error;
+        }
+    }
 }
