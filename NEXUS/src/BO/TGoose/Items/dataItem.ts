@@ -26,7 +26,7 @@ export class Data {
   @prop({ required: true, type: String })
   public name!: string;
 
-  @prop({ required: true, type: Number })
-  public rest!: number;
+  @prop({ required: false, type: Number })
+  public rest?: number;
 }
 

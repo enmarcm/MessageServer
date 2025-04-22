@@ -163,4 +163,26 @@ export default class Group {
             throw error;
         }
     }
+
+    static async obtain_member_group({
+        id_group
+    }: {
+        id_group: number;
+    }) {
+        try {
+            const result = await iPgHandler.executeQuery({
+                key: "obtainMembersGroup",
+                params: [id_group]
+            });
+    
+            if (!Array.isArray(result)) {
+                throw new Error(`Unexpected response structure: ${JSON.stringify(result)}`);
+            }
+    
+            return result;
+        } catch (error) {
+            console.error(`Error obtaining group and members: ${error}`);
+            throw error;
+        }
+    }
 }

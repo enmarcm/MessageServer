@@ -16,5 +16,6 @@
  "createTemplate": "INSERT INTO configuration.template (id_user, de_template, co_template, id_type) VALUES ($1, $2, $3, $4) RETURNING id_template",
  "getAllTemplates": "SELECT id_template, de_template, co_template, id_type FROM configuration.template",
  "editTemplate": "UPDATE configuration.template SET de_template = $1, co_template = $2, id_type = $3 WHERE id_template = $4",
- "deleteTemplate": "DELETE FROM configuration.template WHERE id_template = $1"
+ "deleteTemplate": "DELETE FROM configuration.template WHERE id_template = $1",
+ "obtainMembersGroup": "SELECT s.co_saved content FROM configuration.group_saved gs INNER JOIN configuration.saved s ON gs.id_saved = s.id_saved WHERE gs.id_group = $1"
 }
