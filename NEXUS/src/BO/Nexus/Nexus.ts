@@ -74,20 +74,16 @@ export default class Nexus {
       console.log("Pending items from DB:", pendingItems);
 
       for (const item of pendingItems) {
-        this.que.push(item);
-
         if (!item?.id) {
           logger.error("Item without id");
           continue;
         }
 
-        await ITSGooseHandler.editDocument({
-          Model: QueueItemModel,
-          id: item.id.toString(),
-          newData: { status: "PROCESSING" },
-        });
+        // Agregar el elemento a la cola
+        this.que.push(item);
       }
 
+      // Iniciar el procesamiento de la cola
       this.processQueue();
     } catch (error) {
       logger.error(`Error checking database for pending items: ${error}`);
@@ -100,9 +96,23 @@ export default class Nexus {
 
     try {
       while (this.que.length > 0) {
-        const item = this.que.shift();
+        const item = this.que.shift(); // Obtener el siguiente elemento de la cola
         if (item && item.id) {
-          await this.sendItem(item);
+          try {
+            // Marcar el elemento como "PROCESSING" antes de procesarlo
+            await ITSGooseHandler.editDocument({
+              Model: QueueItemModel,
+              id: item.id.toString(),
+              newData: { status: "PROCESSING" },
+            });
+
+            // Procesar el elemento
+            await this.sendItem(item);
+          } catch (error) {
+            logger.error(`Error processing item ${item.id}: ${error}`);
+            // Reintroducir el elemento en la cola si no pudo ser procesado
+            this.que.push(item);
+          }
         }
       }
     } catch (error) {
@@ -348,8 +358,18 @@ export default class Nexus {
             await ITSGooseHandler.editDocument({
               Model: QueueItemModel,
               id: queueItemId,
-              newData: { status: "COMPLETED" },
+              newData: { status: "COMPLETED" }, // Actualizar a COMPLETED
             });
+
+            logHistory.logEmailActivity(
+              from,
+              to,
+              currentItem.content.subject,
+              "COMPLETED"
+            );
+          } else {
+            // Si no se puede determinar el estado, reintroducir en la cola de rebotes
+            this.bounceQueue.push(bounceItem);
           }
         }
       }
