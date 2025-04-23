@@ -324,6 +324,28 @@ class TSGooseHandler implements TSGooseHandlerProps {
       return { error: `Error counting documents in model ${Model.modelName}` };
     }
   }
+
+
+  async searchAndUpdateMany<T>({
+    Model,
+    condition,
+    update,
+  }: {
+    Model: ReturnModelType<ClazzT<T>>;
+    condition: Object;
+    update: Partial<T>;
+  }): Promise<T[]> {
+    try {
+      const updatedDocuments = await Model.find(condition); // Buscar documentos que coincidan con la condición
+      await Model.updateMany(condition, update); // Actualizar los documentos
+      return updatedDocuments as any; // Retornar los documentos encontrados antes de la actualización
+    } catch (error) {
+      console.error(error);
+      throw new Error(
+        `Error searching and updating documents in model ${Model.modelName}: ${error}`
+      );
+    }
+  }
 }
 
 export default TSGooseHandler;

@@ -7,7 +7,7 @@ export type NexusQueType = {
   id?: string | ObjectId;
   type: DataType;
   content: Content;
-  status: "PENDING" | "COMPLETED" | "ERROR";
+  status: "PENDING" | "COMPLETED" | "ERROR" | "PROCESSING";
 };
 export enum DataTypeEnum {
   SMS = "SMS",

@@ -66,23 +66,25 @@ export default class Nexus {
 
   private checkDatabaseForPendingItems = async (): Promise<void> => {
     try {
-      const pendingItems = await ITSGooseHandler.searchAll<NexusQueType>({
-        Model: QueueItemModel,
+      // Actualizar los elementos a "PROCESSING" directamente en la base de datos
+      const pendingItems = await ITSGooseHandler.searchAndUpdateMany<NexusQueType>({
+        Model: QueueItemModel as any,
         condition: { status: "PENDING" },
+        update: { status: "PROCESSING" },
       });
-
-      console.log("Pending items from DB:", pendingItems);
-
+  
+      logger.log("Pending items moved to PROCESSING:"+ pendingItems);
+  
       for (const item of pendingItems) {
         if (!item?.id) {
           logger.error("Item without id");
           continue;
         }
-
+  
         // Agregar el elemento a la cola
         this.que.push(item);
       }
-
+  
       // Iniciar el procesamiento de la cola
       this.processQueue();
     } catch (error) {
@@ -93,19 +95,12 @@ export default class Nexus {
   private processQueue = async (): Promise<void> => {
     if (this.isProcessing) return; // Evitar múltiples ejecuciones simultáneas
     this.isProcessing = true;
-
+  
     try {
       while (this.que.length > 0) {
         const item = this.que.shift(); // Obtener el siguiente elemento de la cola
         if (item && item.id) {
           try {
-            // Marcar el elemento como "PROCESSING" antes de procesarlo
-            await ITSGooseHandler.editDocument({
-              Model: QueueItemModel,
-              id: item.id.toString(),
-              newData: { status: "PROCESSING" },
-            });
-
             // Procesar el elemento
             await this.sendItem(item);
           } catch (error) {
@@ -119,7 +114,7 @@ export default class Nexus {
       logger.error(`Error processing queue: ${error}`);
     } finally {
       this.isProcessing = false;
-
+  
       // Si no hay más elementos en la cola principal, procesar los rebotes
       if (this.bounceQueue.length > 0) {
         this.processBounceQueue();

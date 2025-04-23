@@ -28,11 +28,11 @@ export class QueueItem {
 
   @prop({
     required: true,
-    enum: ["PENDING", "COMPLETED", "ERROR"],
+    enum: ["PENDING", "COMPLETED", "ERROR", "PROCESSING"],
     default: "PENDING",
     type: String,
   })
-  public status!: "PENDING" | "COMPLETED" | "ERROR";
+  public status!: "PENDING" | "COMPLETED" | "ERROR" | "PROCESSING";
 
   @prop({ required: true, type: Date, default: Date.now })
   public createdAt!: Date;
