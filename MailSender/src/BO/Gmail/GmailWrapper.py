@@ -1,15 +1,22 @@
 import base64
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from googleapiclient.discovery import build
-from datetime import datetime, timedelta
 from googleapiclient.errors import HttpError
 from .Auth.GmailAuth import authenticate_account
+from utils.Attachment import add_attachment
 
 # Agregar el alcance necesario para leer correos
 SCOPES = ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly']
 
 class GmailWrapper:
     def __init__(self, client_secrets):
+        """
+        Inicializa el GmailWrapper con las credenciales del cliente.
+
+        Args:
+            client_secrets (dict): Diccionario donde las claves son correos electrónicos y los valores son rutas a archivos client_secret.json.
+        """
         self.client_secrets = client_secrets
         self.services = self.authenticate_all_accounts(client_secrets)
 
@@ -25,7 +32,7 @@ class GmailWrapper:
         """
         return {account: authenticate_account(account, client_secret_file, SCOPES) for account, client_secret_file in client_secrets.items()}
 
-    def send_email(self, from_email, to, subject, message_text, is_html=False):
+    def send_email(self, from_email, to, subject, message_text, is_html=False, attachments=[]):
         """
         Envía un correo electrónico desde una cuenta autenticada.
 
@@ -35,6 +42,7 @@ class GmailWrapper:
             subject (str): Asunto del correo.
             message_text (str): Cuerpo del correo.
             is_html (bool): Indica si el cuerpo del correo es HTML.
+            attachments (list): Lista de archivos adjuntos. Cada adjunto debe ser un diccionario con 'filename' y 'content'.
 
         Returns:
             dict: Respuesta de la API de Gmail.
@@ -48,15 +56,21 @@ class GmailWrapper:
             return None
 
         service = self.services[from_email]
-        message = MIMEText(message_text, 'html' if is_html else 'plain')
+        message = MIMEMultipart() if attachments else MIMEText(message_text, 'html' if is_html else 'plain')
         message['to'] = to
         message['from'] = from_email
         message['subject'] = subject
+
+        if attachments:
+            message.attach(MIMEText(message_text, 'html' if is_html else 'plain'))
+            for attachment in attachments:
+                add_attachment(message, attachment['filename'], attachment['content'])
+
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
         try:
             return service.users().messages().send(userId="me", body={'raw': raw}).execute()
-        except Exception as error:
+        except HttpError as error:
             print(f'An error occurred: {error}')
             return None
 
@@ -67,6 +81,7 @@ class GmailWrapper:
         Args:
             from_email (str): Dirección del remitente.
             to (str): Dirección del destinatario.
+            sent_time (str): Hora de envío del correo (ISO 8601).
 
         Returns:
             dict: Estado del correo ("failed", "completed") y razón del fallo (si aplica).

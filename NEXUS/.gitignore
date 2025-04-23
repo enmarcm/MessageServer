@@ -1,5 +1,6 @@
 node_modules
 **/credentials.json
+**/uploads
 
 # Ignorar todos los archivos .pyc y .pickle en cualquier subdirectorio
 **/*.pyc

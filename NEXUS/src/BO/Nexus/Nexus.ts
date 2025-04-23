@@ -15,6 +15,8 @@ import config from "../../config.json";
 import { QueueItemModel } from "../TGoose/models";
 import { SMSNumber } from "../../constants";
 import { logHistory } from "../LogHistory/LogHistory";
+import fs from "fs";
+import path from "path";
 
 export default class Nexus {
   public que: NexusQueType[];
@@ -24,7 +26,12 @@ export default class Nexus {
   private selectionHandler: SelectionHandler;
   private rpcHandler: DistributedRPCHandler;
   private isProcessing: boolean;
-  private bounceQueue: { from: string; to: string; server: ServerDataType; queueItemId: string }[];
+  private bounceQueue: {
+    from: string;
+    to: string;
+    server: ServerDataType;
+    queueItemId: string;
+  }[];
   private isProcessingBounces: boolean;
 
   constructor({ data, servers }: ConstructorNexusData) {
@@ -49,6 +56,12 @@ export default class Nexus {
       Model: QueueItemModel,
       data: item,
     });
+  };
+
+  public addMultipleQue = async (items: NexusQueType[]): Promise<void> => {
+    for (const item of items) {
+      await this.addQue(item);
+    }
   };
 
   private checkDatabaseForPendingItems = async (): Promise<void> => {
@@ -118,7 +131,7 @@ export default class Nexus {
     content: EmailContent,
     queueItemId: string
   ): Promise<void> => {
-    const { to, body, subject } = content;
+    const { to, body, subject, attachments } = content;
     if (!to || !body || !subject) return;
 
     if (!this.isValidEmail(to)) return;
@@ -143,11 +156,29 @@ export default class Nexus {
         return;
       }
 
+      // Procesar los archivos adjuntos desde la carpeta uploads
+      const processedAttachments = attachments?.map((attachment) => {
+        const uploadsDir = path.resolve(__dirname, "../../../uploads");
+        const filePath = path.join(uploadsDir, attachment.filename);
+
+        console.log(`Checking file at path: ${filePath}`);
+
+        if (!fs.existsSync(filePath)) {
+          console.error(`File not found at path: ${filePath}`);
+          throw new Error(`Attachment file not found: ${attachment.filename}`);
+        }
+        return {
+          filename: attachment.filename,
+          content: fs.readFileSync(filePath), // Leer el contenido del archivo
+        };
+      });
+
       const contentMapped = {
         from: mailToUse.content.toString(),
         to,
         subject,
         body,
+        attachments: processedAttachments, // Adjuntar los archivos procesados
       };
 
       await new Promise<void>((resolve, reject) => {
@@ -252,12 +283,7 @@ export default class Nexus {
       });
 
       logger.log(`Sending SMS to ${to} with message ${body}`);
-      logHistory.logSMSActivity(
-        SMSNumber.mainNumber,
-        to,
-        body,
-        "COMPLETED"
-      );
+      logHistory.logSMSActivity(SMSNumber.mainNumber, to, body, "COMPLETED");
 
       await ITSGooseHandler.editDocument({
         Model: QueueItemModel,
@@ -295,7 +321,7 @@ export default class Nexus {
           const currentItem = await ITSGooseHandler.searchOne<NexusQueType>({
             Model: QueueItemModel,
             //@ts-ignore
-            condition: { _id: queueItemId } //TODO: Modificar,
+            condition: { _id: queueItemId }, //TODO: Modificar,
           });
 
           if (!currentItem) {
@@ -304,7 +330,9 @@ export default class Nexus {
           }
 
           if (currentItem.status === "ERROR") {
-            logger.log(`Queue item ${queueItemId} is already marked as ERROR. Skipping update.`);
+            logger.log(
+              `Queue item ${queueItemId} is already marked as ERROR. Skipping update.`
+            );
             continue; // No actualizar si ya está en estado ERROR
           }
 
@@ -363,7 +391,6 @@ export default class Nexus {
       console.log("Bounce Response:", bounceResponse);
 
       return bounceResponse.status;
-
     } catch (error) {
       logger.error(`Error during bounce status check: ${error}`);
       return "failed";

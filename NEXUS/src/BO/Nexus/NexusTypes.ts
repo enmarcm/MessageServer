@@ -38,6 +38,8 @@ export interface EmailContent {
   to: string;
   subject: string;
   body: string;
+  attachments?: { filename: string; content: string | Buffer }[]; 
+
 }
 
 export interface SMSContent {

@@ -12,6 +12,12 @@ message MailRequest {
   string to = 2;
   string subject = 3;
   string body = 4;
+  repeated Attachment attachments = 5; // Lista de archivos adjuntos
+}
+
+message Attachment {
+  string filename = 1; // Nombre del archivo
+  bytes content = 2;   // Contenido del archivo en formato binario
 }
 
 message MailResponse {

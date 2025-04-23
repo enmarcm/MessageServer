@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nmail.proto\x12\x04mail\"F\n\x0bMailRequest\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\n\n\x02to\x18\x02 \x01(\t\x12\x0f\n\x07subject\x18\x03 \x01(\t\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\"\x1e\n\x0cMailResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\"<\n\rBounceRequest\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\n\n\x02to\x18\x02 \x01(\t\x12\x11\n\tsent_time\x18\x03 \x01(\t\"0\n\x0e\x42ounceResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t2\x84\x01\n\x0bMailService\x12\x33\n\x08SendMail\x12\x11.mail.MailRequest\x1a\x12.mail.MailResponse\"\x00\x12@\n\x11\x43heckBounceStatus\x12\x13.mail.BounceRequest\x1a\x14.mail.BounceResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nmail.proto\x12\x04mail\"m\n\x0bMailRequest\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\n\n\x02to\x18\x02 \x01(\t\x12\x0f\n\x07subject\x18\x03 \x01(\t\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\x12%\n\x0b\x61ttachments\x18\x05 \x03(\x0b\x32\x10.mail.Attachment\"/\n\nAttachment\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"\x1e\n\x0cMailResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\"<\n\rBounceRequest\x12\x0c\n\x04\x66rom\x18\x01 \x01(\t\x12\n\n\x02to\x18\x02 \x01(\t\x12\x11\n\tsent_time\x18\x03 \x01(\t\"0\n\x0e\x42ounceResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t2\x84\x01\n\x0bMailService\x12\x33\n\x08SendMail\x12\x11.mail.MailRequest\x1a\x12.mail.MailResponse\"\x00\x12@\n\x11\x43heckBounceStatus\x12\x13.mail.BounceRequest\x1a\x14.mail.BounceResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,13 +32,15 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'mail_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_MAILREQUEST']._serialized_start=20
-  _globals['_MAILREQUEST']._serialized_end=90
-  _globals['_MAILRESPONSE']._serialized_start=92
-  _globals['_MAILRESPONSE']._serialized_end=122
-  _globals['_BOUNCEREQUEST']._serialized_start=124
-  _globals['_BOUNCEREQUEST']._serialized_end=184
-  _globals['_BOUNCERESPONSE']._serialized_start=186
-  _globals['_BOUNCERESPONSE']._serialized_end=234
-  _globals['_MAILSERVICE']._serialized_start=237
-  _globals['_MAILSERVICE']._serialized_end=369
+  _globals['_MAILREQUEST']._serialized_end=129
+  _globals['_ATTACHMENT']._serialized_start=131
+  _globals['_ATTACHMENT']._serialized_end=178
+  _globals['_MAILRESPONSE']._serialized_start=180
+  _globals['_MAILRESPONSE']._serialized_end=210
+  _globals['_BOUNCEREQUEST']._serialized_start=212
+  _globals['_BOUNCEREQUEST']._serialized_end=272
+  _globals['_BOUNCERESPONSE']._serialized_start=274
+  _globals['_BOUNCERESPONSE']._serialized_end=322
+  _globals['_MAILSERVICE']._serialized_start=325
+  _globals['_MAILSERVICE']._serialized_end=457
 # @@protoc_insertion_point(module_scope)
