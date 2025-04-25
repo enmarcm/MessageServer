@@ -216,4 +216,32 @@ export class AuthModel {
       return { error: error.message };
     }
   }
+
+  static async changePassword({ email, oldPassword, newPassword }: { email: string; oldPassword: string; newPassword: string }) {
+    try {
+
+      const verifyActualPassword = await AuthModel.verifyPassword({
+        email,
+        password: oldPassword,
+      })
+
+      if (!verifyActualPassword) {
+        return { error: "La contraseña actual no es correcta" };
+      }
+      
+      const hashedPassword = await CryptManager.encryptBcrypt({ data: newPassword });
+
+      await iPgHandler.executeQuery({
+        key: "updateUserPassword",
+        params: [email, hashedPassword],
+      });
+
+      return true;
+    } catch (error: any) {
+      logger.error(
+        `An error occurred in the method changePassword: ${error.message} of the AuthModel.ts object`
+      );
+      return { error: error.message };
+    }
+  }
 }

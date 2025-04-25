@@ -11,6 +11,7 @@ export default class Reports {
       const sms_sends = await ITSGooseHandler.searchAll({
         Model: QueueItemModel,
         condition: { type: "SMS" },
+        limit: 50, // Ajustar límite
       });
       return sms_sends;
     } catch (error) {
@@ -28,7 +29,7 @@ export default class Reports {
       const email_sends = await ITSGooseHandler.searchAll({
         Model: QueueItemModel,
         condition: { type: "EMAIL" },
-        limit: 10000, // Ajustar límite
+      limit: 50, // Ajustar límite
       });
       return email_sends;
     } catch (error) {
@@ -245,13 +246,16 @@ async get_sms_sent_by_day(): Promise<{ time: string; value: number }[]> {
       }));
 
       const templatesResult = await iPgHandler.executeQuery({
-        key: "obtainTemplates",
+        key: "getAllTemplates",
         params: [id_user],
       });
 
       const groupsResult = await iPgHandler.executeQuery({
         key: "obtainAllGroup"
       });
+
+      console.log("templatesResult", templatesResult);
+      console.log("groupsResult", groupsResult);
 
       if (!Array.isArray(templatesResult)) {
         throw new Error(

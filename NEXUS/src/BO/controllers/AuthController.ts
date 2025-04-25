@@ -37,13 +37,11 @@ export default class AuthController {
 
       const token = IJWTManager.generateToken(mappedUserInfo);
 
-      return res
-        .status(200)
-        .json({
-          message: "User logged in",
-          token,
-          ...mappedUserInfo,
-        });
+      return res.status(200).json({
+        message: "User logged in",
+        token,
+        ...mappedUserInfo,
+      });
     } catch (error: any) {
       logger.error(
         `An error occurred in the method login: ${error.message} of the AuthController.ts object`
@@ -52,4 +50,30 @@ export default class AuthController {
     }
   }
 
+  static async updatePassword(req: Request, res: Response) {
+    try {
+      const { email, oldPassword, newPassword} = req.body;
+      console.log(email, oldPassword, newPassword)
+
+      if (!email || !newPassword || !oldPassword) {
+        return res.status(400).json({ error: "Invalid email or password" });
+      }
+
+      const newPass = await AuthModel.changePassword({
+        email,
+        oldPassword,
+        newPassword,
+      });
+
+      return res.status(200).json({
+        message: "Password updated",
+        newPass,
+      });
+    } catch (error: any) {
+      logger.error(
+        `An error occurred in the method login: ${error.message} of the AuthController.ts object`
+      );
+      return res.status(500).json({ error: error.message });
+    }
+  }
 }
