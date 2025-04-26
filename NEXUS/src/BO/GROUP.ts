@@ -1,3 +1,4 @@
+
 import { iPgHandler } from "../data/instances";
 
 export default class Group {
@@ -102,19 +103,35 @@ export default class Group {
     }: {
         id_type: number,
         id_group: number;
-        co_saved: string;
+        co_saved: string | string[]; // Puede ser un string o un array de strings
     }) {
         try {
-            // Usar el nuevo método add_to_saved para obtener el id_saved
-            const id_saved = await this.add_to_saved({ id_type, co_saved });
-
-            // Asociar el ID al grupo
-            console.log(`Saving to group: id_group=${id_group}, id_saved=${id_saved}`);
-            await iPgHandler.executeQuery({
-                key: "savetoGroup",
-                params: [id_group, id_saved]
-            });
-
+            if (Array.isArray(co_saved)) {
+                // Si co_saved es un array, iterar sobre los elementos
+                for (const single_co_saved of co_saved) {
+                    console.log(`Adding to group: id_group=${id_group}, co_saved=${single_co_saved}`);
+                    const id_saved = await Group.add_to_saved({ id_type, co_saved: single_co_saved });
+    
+                    // Asociar el ID al grupo
+                    console.log(`Saving to group: id_group=${id_group}, id_saved=${id_saved}`);
+                    await iPgHandler.executeQuery({
+                        key: "savetoGroup",
+                        params: [id_group, id_saved]
+                    });
+                }
+            } else {
+                // Si co_saved es un string, manejarlo como un solo elemento
+                console.log(`Adding to group: id_group=${id_group}, co_saved=${co_saved}`);
+                const id_saved = await Group.add_to_saved({ id_type, co_saved });
+    
+                // Asociar el ID al grupo
+                console.log(`Saving to group: id_group=${id_group}, id_saved=${id_saved}`);
+                await iPgHandler.executeQuery({
+                    key: "savetoGroup",
+                    params: [id_group, id_saved]
+                });
+            }
+    
             return { success: true, message: "Added to group successfully" };
         } catch (error) {
             console.error(`Error adding to group: ${error}`);
@@ -178,10 +195,59 @@ export default class Group {
             if (!Array.isArray(result)) {
                 throw new Error(`Unexpected response structure: ${JSON.stringify(result)}`);
             }
+            console.log(result)
     
             return result;
         } catch (error) {
             console.error(`Error obtaining group and members: ${error}`);
+            throw error;
+        }
+    }
+
+    static async delete_member_group({
+        id_group,
+        id_saved
+    }: {
+        id_group: number;
+        id_saved: number;
+    }) {
+        try {
+            const result = await iPgHandler.executeQuery({
+                key: "deleteMemberGroup",
+                params: [id_group, id_saved]
+            });
+    
+            if (!Array.isArray(result)) {
+                throw new Error(`Unexpected response structure: ${JSON.stringify(result)}`);
+            }
+    
+            return { success: true, message: "Member deleted from group successfully" };
+        } catch (error) {
+            console.error(`Error deleting member from group: ${error}`);
+            throw error;
+        }
+    }
+
+    static async edit_group({
+        de_group,
+        id_group
+    }: {
+        de_group: string;
+        id_group: number;
+    }) {
+        try {
+            const result = await iPgHandler.executeQuery({
+                key: "editGroup",
+                params: [de_group, id_group]
+            });
+    
+            if (!Array.isArray(result)) {
+                throw new Error(`Unexpected response structure: ${JSON.stringify(result)}`);
+            }
+    
+            return { success: true, message: "Group edited successfully" };
+        } catch (error) {
+            console.error(`Error editing group: ${error}`);
             throw error;
         }
     }
