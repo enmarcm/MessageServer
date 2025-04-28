@@ -17,6 +17,8 @@
  "getAllTemplates": "SELECT id_template, de_template, co_template, id_type FROM configuration.template WHERE id_user = $1",
  "editTemplate": "UPDATE configuration.template SET de_template = $1, co_template = $2, id_type = $3 WHERE id_template = $4",
  "deleteTemplate": "DELETE FROM configuration.template WHERE id_template = $1",
- "obtainMembersGroup": "SELECT s.co_saved content FROM configuration.group_saved gs INNER JOIN configuration.saved s ON gs.id_saved = s.id_saved WHERE gs.id_group = $1",
- "updateUserPassword": "UPDATE security.user SET pa_user = $1 WHERE em_user = $2"
+ "obtainMembersGroup": "SELECT s.id_saved id, s.co_saved content FROM configuration.group_saved gs INNER JOIN configuration.saved s ON gs.id_saved = s.id_saved WHERE gs.id_group = $1",
+ "updateUserPassword": "UPDATE security.user SET pa_user = $1 WHERE em_user = $2",
+ "deleteMemberGroup": "DELETE FROM configuration.group_saved WHERE id_group = $1 AND id_saved = $2",
+ "editGroup": "UPDATE configuration.group SET de_group = $1 WHERE id_group = $2"
 }
